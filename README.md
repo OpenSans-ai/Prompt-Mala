@@ -42,10 +42,11 @@ emailed as one attachment. That inlined copy is identical to `beads.json` — no
 - Shape and length are **fixed structure** — they encode word count and nothing else.
 - Vertical spacing is the real pause before that prompt: tight in fast streaks, visible
   bare string where there was a gap.
-- Every cord is cut to the same length, so the curtain hangs square in the doorway rather
-  than ending in a ragged edge. Nothing is encoded in that tail — the pause reading is the
-  spacing *between* beads, and the run below a strand's last bead never carried any. A
-  short session is therefore a few beads at the top of a long bare string.
+- Each strand hangs from the underside of the arch directly above it, not from a straight
+  rod, so the top of the curtain is a dome and the outer strands start lower than the
+  middle ones. Depths are measured from that per-strand start, so there is no single
+  hanging line anywhere in the code.
+- A cord stops at its last bead. Nothing trails below it.
 
 ## Encoding
 
@@ -66,11 +67,15 @@ They are not drawn on the bead; they appear in the side panel with everything el
 
 ## The doorway
 
-The curtain hangs from a rod in an arched opening with daylight behind it, set into a
-plaster wall, with the light falling on the floor below. The opening is a segmental arch
-rather than a semicircle because it is wider than a single door — its width is set by the
-57 strands. Everything that hangs is clipped to the opening, so a swinging strand cannot
-stray out over the wall.
+The curtain hangs in an arched opening with daylight behind it. There is no wall or floor
+drawn around it — the page shows through, so the doorway reads as one object on paper
+rather than as a room. The opening is a segmental arch rather than a semicircle because it
+is wider than a single door; its width is set by the 57 strands. Everything that hangs is
+clipped to the opening, so a swinging strand cannot stray outside it.
+
+The arch has to be solved before the beads, because the strands hang from it: the arch is
+derived from the curtain's width, the strand tops from the arch, the bead depths from the
+tops, and only then is the floor placed under the longest strand.
 
 The light matters to the encoding, not just the mood: the beads are backlit, which is what
 the glass renderer was built for. Specificity is drawn as density, and a thin bead against

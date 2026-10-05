@@ -201,7 +201,9 @@ const ROWS=[[0,0,16,"06-10T12:14",11,1,1,1,0,0,1,-1],[0,1,16,"06-10T12:15",3,1,0
 // scatter of columns: at 34 the bead filled 41% of its slot and the paper
 // between strands dominated. Tightening it trades a little vertical reach for
 // density — see the note on fit() for why width is the binding dimension.
-const W = 14, STRAND_GAP = 30, MARGIN = 30, HANGER_Y = 22, PAD_W = 7;
+// There is no single hanging line: strands start at the arch soffit above
+// them, so each carries its own `top` and depths are measured from there.
+const W = 14, STRAND_GAP = 30, MARGIN = 30, PAD_W = 7;
 // Bead lengths and pause gaps are both on a compressed vertical scale. One
 // 98-prompt session is nearly four times the median strand, and at full scale
 // it stretched the world so tall that fitting it left the curtain stranded in
@@ -245,9 +247,35 @@ const beads = [], strands = [];
 for (let i = 0; i < nStrands; i++)
   strands.push({ x: MARGIN + i * STRAND_GAP, len: 0, a: 0, v: 0, lastClick: 0 });
 
+const worldW = MARGIN * 2 + (nStrands - 1) * STRAND_GAP + W;
+
+/* ---------- the arch ----------
+   The arch has to be worked out before the beads, because the strands hang
+   from its underside rather than from a straight rod: each one starts at the
+   soffit directly above it, so the top of the curtain is a dome and the outer
+   strands begin lower than the middle ones. Only the width is needed here —
+   the floor comes later, once the longest strand is known. */
+const ARCH = (() => {
+  const padX = 38, headroom = 54;
+  const inL = -padX, inR = worldW + padX;
+  const openW = inR - inL;
+  const spring = -headroom;                       // where the arch leaves the jamb
+  const rise = Math.min(openW * 0.19, 460);
+  const R = (openW*openW/4 + rise*rise) / (2*rise);
+  return { inL, inR, cx:(inL+inR)/2, openW, spring, rise, R,
+           cy: spring - rise + R, topY: spring - rise };
+})();
+// underside of the arch at a given x
+function archY(x){
+  const dx = x - ARCH.cx;
+  return ARCH.cy - Math.sqrt(Math.max(0, ARCH.R*ARCH.R - dx*dx));
+}
+const SOFFIT = 10;   // the rail sits just inside the arch
+for (const st of strands) st.top = archY(st.x) + SOFFIT;
+
 let worldH = 0;
 {
-  const cursor = new Float64Array(nStrands).fill(HANGER_Y);
+  const cursor = Float64Array.from(strands, s => s.top);
   // per-strand running count, since dropping sessions renumbers the beads
   const ord = new Int32Array(nStrands);
   const kept = ROWS.filter(r => COL[r[0]] >= 0);
@@ -258,7 +286,7 @@ let worldH = 0;
     const r = kept[i], sid = COL[r[0]], wc = r[4];
     const L = beadShape(wc) === SHAPE_CIRCLE ? W : beadLen(wc);
     cursor[sid] += beadGap(r[11]);
-    const depth = cursor[sid] + L / 2 - HANGER_Y;
+    const depth = cursor[sid] + L / 2 - strands[sid].top;
     cursor[sid] += L;
     const o = ord[sid]++;
     const t = slen[sid] > 1 ? o / (slen[sid] - 1) : 0;
@@ -272,48 +300,31 @@ let worldH = 0;
     });
   }
   for (let i = 0; i < nStrands; i++) {
-    strands[i].len = cursor[i] - HANGER_Y;
+    strands[i].len = cursor[i] - strands[i].top;
     if (cursor[i] > worldH) worldH = cursor[i];
   }
 }
-const worldW = MARGIN * 2 + (nStrands - 1) * STRAND_GAP + W;
 worldH += 30;
 for (const b of beads) beads[b.id].strand = strands[b.sid];
 
-// Every cord is cut to the same length, so the curtain hangs square in the
-// doorway instead of ending in a ragged edge halfway down. This costs nothing
-// in meaning: the pause encoding is the spacing *between* beads, and the tail
-// below the last bead of a strand was never carrying any. `len` stays the bead
-// extent, which is what the sway and the hit testing are built on.
-{
-  const cord = worldH - HANGER_Y - 12;
-  for (const st of strands) st.cord = cord;
-}
+// The cord stops at the last bead — no empty string trailing below it.
+for (const st of strands) st.cord = st.len;
 
 /* ---------- the doorway ----------
    The curtain hangs in an arched opening with daylight behind it, so the glass
    is lit from the far side: that is what makes a bead curtain worth looking at,
    and it is what the whole glass renderer was built for. A segmental arch
    rather than a semicircle, because the opening is wider than a single door. */
-const DOOR = (() => {
-  const padX = 38, headroom = 62, sill = 56, frame = 40;
-  const inL = -padX, inR = worldW + padX;
-  const openW = inR - inL;
-  const spring = HANGER_Y - headroom;              // where the arch leaves the jamb
-  const rise = Math.min(openW * 0.19, 460);        // how far it lifts above that
-  const R = (openW*openW/4 + rise*rise) / (2*rise);
-  const cy = spring - rise + R;                    // centre of the arc, below the crown
-  const floorY = worldH + sill;
-  return { inL, inR, cx:(inL+inR)/2, openW, spring, rise, R, cy, frame,
-           topY: spring - rise, floorY };
-})();
+const DOOR = Object.assign({}, ARCH, {
+  frame: 40,
+  floorY: worldH + 46   // the jambs run just past the longest strand
+});
 
-// everything the camera should be able to see: opening, architrave, a margin of
-// wall around it, and a strip of floor underneath
+// opening, architrave, and a small margin of air around it
 const VIEW = (() => {
-  const wall = 40;
-  return { l: DOOR.inL - DOOR.frame - wall, r: DOOR.inR + DOOR.frame + wall,
-           t: DOOR.topY - DOOR.frame - wall, b: DOOR.floorY + 64 };
+  const air = 26;
+  return { l: DOOR.inL - DOOR.frame - air, r: DOOR.inR + DOOR.frame + air,
+           t: DOOR.topY - DOOR.frame - air, b: DOOR.floorY + DOOR.frame + air };
 })();
 VIEW.w = VIEW.r - VIEW.l; VIEW.h = VIEW.b - VIEW.t;
 VIEW.cx = (VIEW.l + VIEW.r)/2; VIEW.cy = (VIEW.t + VIEW.b)/2;
@@ -609,6 +620,11 @@ let needs = true, lastT = 0, paused = false;
 function draw(){ needs = true; }
 
 function render(t){
+  // Scheduled first, not last: if anything in a frame throws, the loop still
+  // survives. Having it at the end meant one bad frame froze the canvas for
+  // good, with the last good frame left on screen looking like a live view.
+  requestAnimationFrame(render);
+
   const dt = t - lastT;
   let moving = false;
   // Paused freezes the sway where it is; the view still redraws so panning,
@@ -623,8 +639,8 @@ function render(t){
       if (Math.abs(st.a) > 1e-4 || Math.abs(st.v) > 1e-5) moving = true;
     }
   }
-  if (!needs && !moving){ requestAnimationFrame(render); return; }
-  if (dt < 22 && !dragging){ requestAnimationFrame(render); return; }
+  if (!needs && !moving) return;
+  if (dt < 22 && !dragging) return;
   lastT = t; needs = false;
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -633,21 +649,10 @@ function render(t){
   const ox = cvw/2 - cam.x*z, oy = cvh/2 - cam.y*z;
   const w2x = wx => wx*z + ox, w2y = wy => wy*z + oy;
 
-  // ---- the wall the doorway is cut into ----
-  const wall = ctx.createLinearGradient(0, 0, cvw*0.35, cvh);
-  wall.addColorStop(0, '#efe6d3'); wall.addColorStop(0.5, '#e7dcc6'); wall.addColorStop(1, '#dbcfb6');
-  ctx.fillStyle = wall; ctx.fillRect(0, 0, cvw, cvh);
-
-  // floor, catching the light that comes through
-  const fy = w2y(DOOR.floorY);
-  if (fy < cvh){
-    const fl = ctx.createLinearGradient(0, fy, 0, cvh);
-    fl.addColorStop(0, '#cdbb9b'); fl.addColorStop(1, '#ded0b4');
-    ctx.fillStyle = fl; ctx.fillRect(0, fy, cvw, cvh - fy);
-    const pool = ctx.createRadialGradient(w2x(DOOR.cx), fy, 0, w2x(DOOR.cx), fy, DOOR.openW*z*0.78);
-    pool.addColorStop(0, 'rgba(255,241,205,0.72)'); pool.addColorStop(1, 'rgba(255,241,205,0)');
-    ctx.fillStyle = pool; ctx.fillRect(0, fy, cvw, cvh - fy);
-  }
+  // Nothing beside the door — the page shows through, so the doorway reads as
+  // one object on paper rather than a scene with walls and a floor.
+  ctx.fillStyle = '#f4efe4';
+  ctx.fillRect(0, 0, cvw, cvh);
 
   // ---- the opening, with daylight behind it ----
   function openingPath(){
@@ -680,14 +685,18 @@ function render(t){
   openingPath(); ctx.stroke();
   ctx.restore();
 
-  // the rod, inside the opening
-  const ry = w2y(HANGER_Y);
-  ctx.fillStyle = 'rgba(70,52,30,0.2)';
-  ctx.fillRect(w2x(DOOR.inL), ry - 2*z, DOOR.openW*z, 8*z);
-  const hg = ctx.createLinearGradient(0, ry - 4.5*z, 0, ry + 4.5*z);
-  hg.addColorStop(0, '#7d5f3d'); hg.addColorStop(0.38, '#c8a977'); hg.addColorStop(1, '#4f3a24');
-  ctx.fillStyle = hg;
-  ctx.fillRect(w2x(DOOR.inL), ry - 2.4*z, DOOR.openW*z, 5*z);
+  // The rail the strands hang from, curved to the arch rather than straight
+  // across, so each cord leaves the soffit directly above it.
+  const a1 = Math.atan2(DOOR.spring - DOOR.cy, DOOR.inL - DOOR.cx);
+  const a2 = Math.atan2(DOOR.spring - DOOR.cy, DOOR.inR - DOOR.cx);
+  ctx.beginPath();
+  ctx.arc(w2x(DOOR.cx), w2y(DOOR.cy), (DOOR.R + SOFFIT)*z, a1, a2);
+  ctx.strokeStyle = 'rgba(70,52,30,0.22)';
+  ctx.lineWidth = Math.max(1.4, 7*z);
+  ctx.stroke();
+  ctx.strokeStyle = '#9c7a4e';
+  ctx.lineWidth = Math.max(0.9, 4*z);
+  ctx.stroke();
   ctx.restore();
 
   const padX = 60, padY = 80;
@@ -712,11 +721,11 @@ function render(t){
       const step = Math.max(24, 70/Math.max(z, 0.08));
       for (let d = 0; d <= st.cord; d += step){
         const a = angAt(st, d);
-        const px = w2x(st.x + Math.sin(a)*d), py = w2y(HANGER_Y + Math.cos(a)*d);
+        const px = w2x(st.x + Math.sin(a)*d), py = w2y(st.top + Math.cos(a)*d);
         d === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
       }
       const aE = angAt(st, st.cord);
-      ctx.lineTo(w2x(st.x + Math.sin(aE)*st.cord), w2y(HANGER_Y + Math.cos(aE)*st.cord));
+      ctx.lineTo(w2x(st.x + Math.sin(aE)*st.cord), w2y(st.top + Math.cos(aE)*st.cord));
       ctx.stroke();
     }
   }
@@ -731,7 +740,7 @@ function render(t){
   for (const b of beads){
     const st = b.strand;
     const a = angAt(st, b.depth);
-    const wx = st.x + Math.sin(a)*b.depth, wy = HANGER_Y + Math.cos(a)*b.depth;
+    const wx = st.x + Math.sin(a)*b.depth, wy = st.top + Math.cos(a)*b.depth;
     const sx = w2x(wx), sy = w2y(wy);
     if (sx < -padX || sx > cvw + padX || sy < -padY || sy > cvh + padY) continue;
     const rot = a + b.tilt;
@@ -763,7 +772,7 @@ function render(t){
   if (sel){
     const st = sel.strand;
     const a = angAt(st, sel.depth);
-    const sx = w2x(st.x + Math.sin(a)*sel.depth), sy = w2y(HANGER_Y + Math.cos(a)*sel.depth);
+    const sx = w2x(st.x + Math.sin(a)*sel.depth), sy = w2y(st.top + Math.cos(a)*sel.depth);
     ctx.save(); ctx.translate(sx, sy); ctx.rotate(a + sel.tilt);
     ctx.strokeStyle = 'rgba(40,30,18,0.85)';
     ctx.lineWidth = Math.max(1, 1.6*Math.min(z,2));
@@ -798,14 +807,6 @@ function render(t){
   ctx.lineWidth = Math.max(0.6, 1.6*z);
   openingPath(); ctx.stroke();
   ctx.restore();
-
-  // threshold
-  if (fy < cvh){
-    ctx.fillStyle = 'rgba(70,52,30,0.26)';
-    ctx.fillRect(w2x(DOOR.inL) - fw/2, fy - 1.5*z, DOOR.openW*z + fw, Math.max(1.2, 3*z));
-  }
-
-  requestAnimationFrame(render);
 }
 
 /* ---------- audio ---------- */
@@ -935,7 +936,7 @@ function hitTest(sx, sy){
   for (const b of beads){
     const st = b.strand;
     const a = angAt(st, b.depth);
-    const wx = st.x + Math.sin(a)*b.depth, wy = HANGER_Y + Math.cos(a)*b.depth;
+    const wx = st.x + Math.sin(a)*b.depth, wy = st.top + Math.cos(a)*b.depth;
     const px = w2sx(wx), py = w2sy(wy);
     const ddx = (sx - px)/cam.z, ddy = (sy - py)/cam.z;
     const r = -(a + b.tilt);
@@ -1055,7 +1056,7 @@ document.getElementById('sNext').onclick = () => step(1);
 // keep a stepped-to bead on screen without yanking the zoom around
 function frameBead(b){
   const st = b.strand, a = angAt(st, b.depth);
-  const wx = st.x + Math.sin(a)*b.depth, wy = HANGER_Y + Math.cos(a)*b.depth;
+  const wx = st.x + Math.sin(a)*b.depth, wy = st.top + Math.cos(a)*b.depth;
   const m = 60;
   const sx = w2sx(wx), sy = w2sy(wy);
   if (sx < m || sx > cvw-m || sy < m || sy > cvh-m){ cam.x = wx; cam.y = wy; clampCam(); }
