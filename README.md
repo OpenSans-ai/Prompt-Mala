@@ -27,8 +27,13 @@ emailed as one attachment. That inlined copy is identical to `beads.json` — no
   | 16–40 | diamond (faceted) |
   | 41+ | tube (slender) |
 
-  Length grows fast then levels off (capped at ~3.9× bead width), so a 1,100-word pasted
+  Length grows fast then levels off (capped at ~2.1× bead width), so a 1,100-word pasted
   prompt is a long bead that still fits the screen.
+
+  The vertical scale is deliberately compressed. The floor is set by the seed bead: a
+  ≤5-word prompt is a circle of exactly one bead width, so a 6-word prompt has to be
+  longer than that or the encoding would invert. That floor, times the 98 prompts in the
+  longest session, is what fixes the height of the whole piece.
 - Shape and length are **fixed structure** — they encode word count and nothing else.
 - Vertical spacing is the real pause before that prompt: tight in fast streaks, visible
   bare string where there was a gap.
@@ -54,6 +59,10 @@ They are not drawn on the bead; they appear in the tap sheet with everything els
 
 - **Drag** across the strands — they sway and click softly, and the view pans with you.
 - **Pinch** (or scroll wheel) to zoom. Far out reads as a pattern; close up shows single beads.
+  Zooming out stops once the curtain spans the full width — the curtain is taller than it
+  is wide, so fitting the height too would strand it in a column with bare paper down both
+  sides. At that point most of the piece is on screen; the tail of the few longest strands
+  runs past the bottom, and you pan down for it.
 - **Tap a bead** for its time and all of its labels.
 
 ## Privacy
