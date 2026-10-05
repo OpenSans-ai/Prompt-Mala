@@ -16,9 +16,26 @@
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
     color:var(--ink); font-feature-settings:"tnum" 1;}
 
-  /* The whole piece sits in one centred measure with air around it. */
-  #page{height:100%; max-width:1180px; margin:0 auto; padding:var(--pad) var(--pad) 0;
-    display:flex; flex-direction:column;}
+  /* The piece on the left, the reading of a single bead on the right. */
+  #app{height:100%; display:flex;}
+  #main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column;
+    padding:var(--pad) var(--pad) 0;}
+  #side{flex:0 0 clamp(292px, 27vw, 384px); border-left:1px solid var(--rule);
+    padding:var(--pad); overflow-y:auto; overscroll-behavior:contain;}
+
+  /* Stacked, the panel would eat half the piece just to sit there empty, so it
+     stays shut until a bead is actually chosen and opens as a drawer. */
+  @media (max-width:860px){
+    #app{flex-direction:column;}
+    /* A plain display swap, not an animated height. Transitioning max-height
+       here fought the flex sizing and left the drawer stuck shut. */
+    #side{display:none;}
+    #app.sel #side{display:block; flex:0 0 auto; max-height:48vh; overflow-y:auto;
+      border-left:0; border-top:1px solid var(--rule-firm);
+      padding:var(--pad) var(--pad) calc(var(--pad) + env(safe-area-inset-bottom));}
+    #sEmpty{display:none;}
+    #subkey{display:none;}
+  }
 
   /* ---- masthead ---- */
   #mast{flex:0 0 auto; padding-bottom:9px; border-bottom:1px solid var(--rule-firm);}
@@ -33,12 +50,27 @@
   #stage{flex:1 1 auto; min-height:0; position:relative;}
   canvas#cv{position:absolute; inset:0; display:block; width:100%; height:100%; touch-action:none;}
 
-  #zoom{position:absolute; right:0; bottom:0; z-index:12; display:flex;}
-  #zoom button{width:31px; height:31px; border:1px solid var(--rule); border-left-width:0;
-    background:rgba(244,239,228,0.9); color:var(--ink-2); font-size:14px; line-height:1;
-    cursor:pointer; font-family:inherit;}
-  #zoom button:first-child{border-left-width:1px;}
-  #zoom button:hover{background:rgba(20,17,12,0.06); color:var(--ink);}
+  /* floating control bar, centred under the piece */
+  #tools{position:absolute; left:50%; bottom:10px; transform:translateX(-50%); z-index:12;
+    display:flex; align-items:center; gap:2px; padding:5px;
+    background:rgba(249,245,237,0.93); border:1px solid var(--rule); border-radius:999px;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 2px 14px rgba(20,17,12,0.07);}
+  #tools button{border:0; background:none; color:var(--ink-2); font-family:inherit;
+    font-size:12px; line-height:1; padding:8px 13px; border-radius:999px; cursor:pointer;
+    white-space:nowrap; display:flex; align-items:center; gap:6px;}
+  #tools button:hover{background:rgba(20,17,12,0.06); color:var(--ink);}
+  #tools button.on{background:var(--ink); color:var(--paper);}
+  #tools .sep{width:1px; height:18px; background:var(--rule); margin:0 3px;}
+  #tools .ico{width:24px; padding:8px 0; justify-content:center; font-size:14px;}
+
+  /* hover readout over the fabric */
+  #tip{position:absolute; z-index:14; pointer-events:none; max-width:238px;
+    background:var(--paper); border:1px solid var(--rule-firm); padding:9px 11px 10px;
+    opacity:0; transition:opacity .12s; box-shadow:0 3px 16px rgba(20,17,12,0.1);}
+  #tip.show{opacity:1;}
+  #tip .t{font-size:9.5px; font-weight:650; letter-spacing:0.155em; text-transform:uppercase;}
+  #tip .d{margin-top:5px; font-size:11.5px; line-height:1.35; color:var(--ink-2);}
 
   /* ---- caption ---- */
   #caption{flex:0 0 auto; border-top:1px solid var(--rule-firm);
@@ -55,65 +87,108 @@
     font-size:10.5px; color:var(--ink-3);}
   #subkey b{font-weight:600; color:var(--ink-2);}
 
-  /* ---- detail ---- */
-  #sheet{position:fixed; left:var(--pad); right:var(--pad); bottom:0; z-index:20;
-    background:var(--paper); border:1px solid var(--rule-firm); border-bottom:0;
-    padding:15px 18px 17px; max-width:480px; margin:0 auto;
-    transform:translateY(102%); transition:transform .28s cubic-bezier(.2,.85,.25,1);}
-  #sheet.show{transform:translateY(0);}
-  #sheet .hd{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
-    padding-bottom:11px; margin-bottom:3px; border-bottom:1px solid var(--rule);}
-  #sheet .tm{font-size:17px; font-weight:620; letter-spacing:-0.02em;}
-  #sheet .mt{margin-top:4px;}
-  #sheet .cl{border:1px solid var(--rule); background:none; color:var(--ink-2);
-    width:25px; height:25px; font-size:13px; line-height:1; cursor:pointer; flex:0 0 auto; font-family:inherit;}
-  #sheet .cl:hover{background:rgba(20,17,12,0.06); color:var(--ink);}
-  #rows{display:grid; grid-template-columns:auto 1fr; font-size:12.5px;}
-  #rows > div{padding:4.5px 0; border-bottom:1px solid var(--rule);}
-  #rows > div:nth-last-child(-n+2){border-bottom:0;}
-  #rows .k, #rows .v{align-self:center;}
-  #rows .v{text-align:right; font-weight:530;}
+  /* ---- the reading panel ---- */
+  #side .empty{color:var(--ink-3); font-size:12.5px; line-height:1.5;}
+  #sType{font-size:11px; font-weight:650; letter-spacing:0.15em; text-transform:uppercase;}
+  #sTitle{margin:9px 0 0; font-size:clamp(23px,2.4vw,30px); font-weight:640;
+    letter-spacing:-0.028em; line-height:1;}
+  #sDesc{margin:11px 0 0; font-size:13px; line-height:1.45; color:var(--ink-2);}
+  #sMeta{margin-top:12px; padding-top:12px; border-top:1px solid var(--rule);
+    font-size:11px; line-height:1.5; color:var(--ink-3);}
+
+  .sect{margin-top:18px; padding-top:14px; border-top:1px solid var(--rule);}
+  .sect > .lbl{display:block; margin-bottom:11px;}
+
+  .bar{margin-bottom:13px;}
+  .bar .hd{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    font-size:12px; margin-bottom:6px;}
+  .bar .hd .v{color:var(--ink); font-weight:560;}
+  .bar .tr{height:5px; background:rgba(20,17,12,0.08); position:relative;}
+  .bar .fl{position:absolute; left:0; top:0; bottom:0; background:var(--ink);
+    transition:width .22s cubic-bezier(.2,.85,.25,1);}
+
+  #sNav{display:flex; justify-content:space-between; align-items:center; gap:10px;
+    margin-top:18px; padding-top:13px; border-top:1px solid var(--rule); font-size:12px;}
+  #sNav button{border:0; background:none; font-family:inherit; font-size:12px;
+    color:var(--ink-2); cursor:pointer; padding:4px 0;}
+  #sNav button:hover{color:var(--ink);}
+  #sNav button:disabled{color:var(--ink-3); cursor:default;}
+  #sNav .pos{color:var(--ink-3);}
+
+  .row{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+    font-size:12px; padding:6px 0; border-bottom:1px solid var(--rule);}
+  .row .v{color:var(--ink); font-weight:530; text-align:right;}
+  .note{margin:6px 0 10px; font-size:11px; line-height:1.4; color:var(--ink-3);}
+
+  .caveat{margin-top:14px; font-size:10.5px; line-height:1.45; color:var(--ink-3);}
 </style>
 </head>
 <body>
-<div id="page">
+<div id="app">
 
-  <header id="mast">
-    <h1>Bead curtain</h1>
-    <p class="stand">Every bead is one prompt. Every strand is one session, read top to
-      bottom in the order it was typed.</p>
-    <div class="dek">
-      <span class="lbl" id="mCount">&nbsp;</span>
-      <span class="lbl">10 Jun &ndash; 5 Oct 2026</span>
-    </div>
-  </header>
+  <div id="main">
+    <header id="mast">
+      <h1>Bead curtain</h1>
+      <p class="stand">Every bead is one prompt. Every strand is one session, read top to
+        bottom in the order it was typed.</p>
+      <div class="dek">
+        <span class="lbl" id="mCount">&nbsp;</span>
+        <span class="lbl">10 Jun &ndash; 5 Oct 2026</span>
+      </div>
+    </header>
 
-  <div id="stage">
-    <canvas id="cv"></canvas>
-    <div id="zoom">
-      <button id="zOut" aria-label="Zoom out">&minus;</button>
-      <button id="zIn" aria-label="Zoom in">+</button>
-      <button id="zFit" aria-label="Fit whole curtain">&#9633;</button>
+    <div id="stage">
+      <canvas id="cv"></canvas>
+      <div id="tip"><div class="t" id="tipT"></div><div class="d" id="tipD"></div></div>
+      <div id="tools">
+        <button id="tFit">Reset view</button>
+        <button id="tPause">Pause motion</button>
+        <span class="sep"></span>
+        <button class="ico" id="zOut" aria-label="Zoom out">&minus;</button>
+        <button class="ico" id="zIn" aria-label="Zoom in">+</button>
+      </div>
     </div>
+
+    <footer id="caption">
+      <div id="capTop">
+        <span class="lbl">Phase</span>
+        <span id="hint">drag the strands &middot; scroll to zoom &middot; click a bead</span>
+      </div>
+      <div id="legend"></div>
+      <div id="subkey"></div>
+    </footer>
   </div>
 
-  <footer id="caption">
-    <div id="capTop">
-      <span class="lbl">Phase</span>
-      <span id="hint">drag the strands &middot; pinch to zoom &middot; tap a bead</span>
+  <aside id="side">
+    <div id="sEmpty" class="empty">
+      Hover a bead to see what kind of prompt it was. Click one to read it in full here.
     </div>
-    <div id="legend"></div>
-    <div id="subkey"></div>
-  </footer>
+    <div id="sBody" hidden>
+      <div id="sType"></div>
+      <h2 id="sTitle"></h2>
+      <p id="sDesc"></p>
+      <div id="sMeta" class="lbl"></div>
 
-</div>
+      <div class="sect">
+        <span class="lbl">Prompt analysis</span>
+        <div id="sBars"></div>
+        <p class="caveat">Labels come from keyword and pattern heuristics over the prompt
+          text, not a per-prompt reading. Bars show where the label sits on its scale.</p>
+      </div>
 
-<div id="sheet">
-  <div class="hd">
-    <div><div class="tm" id="shTime">&nbsp;</div><div class="mt lbl" id="shMeta">&nbsp;</div></div>
-    <button class="cl" id="shClose" aria-label="Close">&times;</button>
-  </div>
-  <div id="rows"></div>
+      <div class="sect">
+        <span class="lbl">In context</span>
+        <div id="sCtx"></div>
+      </div>
+
+      <div id="sNav">
+        <button id="sPrev">&larr; Previous</button>
+        <span class="pos" id="sPos"></span>
+        <button id="sNext">Next &rarr;</button>
+      </div>
+    </div>
+  </aside>
+
 </div>
 
 <script>
@@ -432,28 +507,23 @@ function resize(){
   syncRect();
   cv.width = Math.round(cvw*dpr); cv.height = Math.round(cvh*dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // Zoom out stops once the curtain spans the full width. Fitting the height
-  // as well would shrink it to a column with bare paper down both sides, and
-  // the curtain is taller than it is wide, so width is the binding edge.
-  minZ = cvw/worldW;
+  // Zoom out stops with the whole curtain on screen — it hangs in the frame as
+  // one object, the way you would look at the real thing, rather than being
+  // cropped. The piece is close to square, so little is wasted either side.
+  minZ = Math.min(cvw/worldW, cvh/worldH) * 0.96;
   if (cam.z < minZ) cam.z = minZ;
   draw();
 }
-// Reset: full width, rod tucked just under the top edge. The bottom of the one
-// very long strand falls past the frame — pan down for it.
 function fit(){
-  cam.z = minZ;
-  cam.x = worldW/2;
-  cam.y = HANGER_Y + (cvh/2 - 10)/cam.z;
+  cam.z = minZ; cam.x = worldW/2; cam.y = worldH/2;
   clampCam(); draw();
 }
 function clampCam(){
   const vw = cvw/cam.z, vh = cvh/cam.z;
-  // no horizontal slack — paper must never show at the sides
   if (worldW <= vw) cam.x = worldW/2;
   else cam.x = Math.max(vw/2, Math.min(worldW - vw/2, cam.x));
-  if (worldH < vh) cam.y = worldH/2;
-  else cam.y = Math.max(vh/2 - 40, Math.min(worldH - vh/2 + 60, cam.y));
+  if (worldH <= vh) cam.y = worldH/2;
+  else cam.y = Math.max(vh/2, Math.min(worldH - vh/2, cam.y));
 }
 const s2wx = sx => (sx - cvw/2)/cam.z + cam.x;
 const s2wy = sy => (sy - cvh/2)/cam.z + cam.y;
@@ -471,19 +541,23 @@ function angAt(st, depth){
 }
 
 /* ---------- draw ---------- */
-let needs = true, lastT = 0;
+let needs = true, lastT = 0, paused = false;
 function draw(){ needs = true; }
 
 function render(t){
   const dt = t - lastT;
   let moving = false;
-  for (const st of strands){
-    st.v += -0.0042 * st.a;
-    st.v *= 0.982;
-    st.a += st.v;
-    if (st.a > 0.45){ st.a = 0.45; if (st.v > 0) st.v = 0; }
-    else if (st.a < -0.45){ st.a = -0.45; if (st.v < 0) st.v = 0; }
-    if (Math.abs(st.a) > 1e-4 || Math.abs(st.v) > 1e-5) moving = true;
+  // Paused freezes the sway where it is; the view still redraws so panning,
+  // zooming and selection keep working.
+  if (!paused){
+    for (const st of strands){
+      st.v += -0.0042 * st.a;
+      st.v *= 0.982;
+      st.a += st.v;
+      if (st.a > 0.45){ st.a = 0.45; if (st.v > 0) st.v = 0; }
+      else if (st.a < -0.45){ st.a = -0.45; if (st.v < 0) st.v = 0; }
+      if (Math.abs(st.a) > 1e-4 || Math.abs(st.v) > 1e-5) moving = true;
+    }
   }
   if (!needs && !moving){ requestAnimationFrame(render); return; }
   if (dt < 22 && !dragging){ requestAnimationFrame(render); return; }
@@ -703,11 +777,10 @@ cv.addEventListener('wheel', e => {
   clampCam(); draw();
 }, { passive: false });
 
-/* ---------- pick + sheet ---------- */
+/* ---------- hit test, selection, hover ---------- */
 let sel = null;
-const sheet = document.getElementById('sheet');
 
-function pick(sx, sy){
+function hitTest(sx, sy){
   const tol = 5/cam.z;
   let best = null, bestD = Infinity;
   for (const b of beads){
@@ -725,10 +798,15 @@ function pick(sx, sy){
       if (d < bestD){ bestD = d; best = b; }
     }
   }
-  if (best){ sel = best; showSheet(best); clickSound(0.08); }
-  else { sel = null; sheet.classList.remove('show'); }
-  draw();
+  return best;
 }
+
+function pick(sx, sy){
+  const best = hitTest(sx, sy);
+  if (best){ select(best); clickSound(0.08); }
+  else { sel = null; showPanel(null); draw(); }
+}
+function select(b){ sel = b; showPanel(b); draw(); }
 function w2sx(wx){ return wx*cam.z + (cvw/2 - cam.x*cam.z); }
 function w2sy(wy){ return wy*cam.z + (cvh/2 - cam.y*cam.z); }
 
@@ -739,28 +817,130 @@ function fmtGap(g){
   if (g < 3600) return Math.round(g/60) + ' min';
   return (g/3600).toFixed(1) + ' h';
 }
-function showSheet(b){
-  const mo = parseInt(b.ts.slice(0,2),10), da = parseInt(b.ts.slice(3,5),10);
-  document.getElementById('shTime').textContent = da + ' ' + MONTHS[mo-1] + ' 2026, ' + b.ts.slice(6);
-  document.getElementById('shMeta').textContent =
-    'Strand ' + (b.sid+1) + '/' + SESSIONS.length + ' · Bead ' + (b.ord+1) + '/' + b.slen;
-  const rows = [
-    ['Phase', LEGEND.phase[b.phase]],
-    ['Decision fatigue', LEGEND.fatigue[b.fatIdx]],
-    ['Clarity', LEGEND.clarity[b.clarity]],
-    ['Specificity', LEGEND.specificity[b.spec]],
-    ['Groundedness', LEGEND.groundedness[b.ground]],
-    ['Bundling', LEGEND.bundling[b.bundle]],
-    ['Hour of day', LEGEND.hour[b.hour]],
-    ['Shape', SHAPE_NAMES[b.shape]],
-    ['Length', b.wc + ' words'],
-    ['Pause before', fmtGap(b.gap)]
-  ];
-  document.getElementById('rows').innerHTML =
-    rows.map(r => '<div class="k lbl">' + r[0] + '</div><div class="v">' + r[1] + '</div>').join('');
-  sheet.classList.add('show');
+// Specificity is the headline: of everything the labeller recorded it is the
+// one that judges the prompt itself rather than its subject or its timing.
+const SPEC_NOTE = [
+  'Names what to change and where, with enough detail to act on alone.',
+  'States the ask directly, without much elaboration.',
+  'Part precise, part left open — some detail given, some assumed.',
+  'Gestures at the problem and leaves the detail to be inferred.'
+];
+const PHASE_NOTE = [
+  'Shaping what the thing looks like.',
+  'Scaffolding — config, tooling, getting the ground ready.',
+  'Chasing something that was broken.',
+  'Working on how it behaves and feels to use.'
+];
+
+function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]); }
+
+// Each bar fills to where the label sits on its own scale. Direction is "more
+// of the thing named", so Specificity full = very specific, Bundling full =
+// many asks. The printed value is always the label, never a invented number.
+function barRow(name, value, frac){
+  return '<div class="bar"><div class="hd"><span>' + esc(name) + '</span>' +
+    '<span class="v">' + esc(value) + '</span></div>' +
+    '<div class="tr"><div class="fl" style="width:' + Math.round(frac*100) + '%"></div></div></div>';
 }
-document.getElementById('shClose').onclick = () => { sheet.classList.remove('show'); sel = null; draw(); };
+
+// Context fields carry no magnitude, so they get a rule and a value, no bar.
+function plainRow(name, value, note){
+  return '<div class="row"><span>' + esc(name) + '</span>' +
+    '<span class="v">' + esc(value) + '</span></div>' +
+    (note ? '<p class="note">' + esc(note) + '</p>' : '');
+}
+
+const sEmpty = document.getElementById('sEmpty'), sBody = document.getElementById('sBody');
+
+const appEl = document.getElementById('app');
+
+function showPanel(b){
+  // drives the stacked-layout drawer as well as the panel contents
+  const was = appEl.classList.contains('sel');
+  appEl.classList.toggle('sel', !!b);
+  // On the stacked layout the drawer takes height off the canvas, so the
+  // backing store has to be re-measured whenever it opens or closes.
+  if (was !== !!b && (cv.clientWidth !== cvw || cv.clientHeight !== cvh)) resize();
+  if (!b){ sEmpty.hidden = false; sBody.hidden = true; return; }
+  sEmpty.hidden = true; sBody.hidden = false;
+
+  const mo = parseInt(b.ts.slice(0,2),10), da = parseInt(b.ts.slice(3,5),10);
+  document.getElementById('sType').textContent = LEGEND.specificity[b.spec];
+  document.getElementById('sTitle').textContent = 'Bead ' + nf.format(b.id + 1);
+  document.getElementById('sDesc').textContent = SPEC_NOTE[b.spec];
+  document.getElementById('sMeta').textContent =
+    da + ' ' + MONTHS[mo-1] + ' 2026, ' + b.ts.slice(6) +
+    ' · strand ' + (b.sid+1) + ' of ' + SESSIONS.length +
+    ' · bead ' + (b.ord+1) + ' of ' + b.slen;
+
+  document.getElementById('sBars').innerHTML =
+    barRow('Specificity', LEGEND.specificity[b.spec], 1 - b.spec/3) +
+    barRow('Clarity',     LEGEND.clarity[b.clarity],  1 - b.clarity/2) +
+    barRow('Grounding',   LEGEND.groundedness[b.ground], b.ground/2) +
+    barRow('Bundling',    LEGEND.bundling[b.bundle],  b.bundle/2) +
+    barRow('Length',      b.wc + (b.wc === 1 ? ' word' : ' words'), Math.min(1, b.wc/60));
+
+  document.getElementById('sCtx').innerHTML =
+    plainRow('Phase', LEGEND.phase[b.phase], PHASE_NOTE[b.phase]) +
+    plainRow('Session position', LEGEND.fatigue[b.fatIdx]) +
+    plainRow('Time of day', LEGEND.hour[b.hour]) +
+    plainRow('Pause before', fmtGap(b.gap)) +
+    plainRow('Shape', SHAPE_NAMES[b.shape]);
+
+  document.getElementById('sPos').textContent = nf.format(b.id+1) + ' / ' + nf.format(beads.length);
+  document.getElementById('sPrev').disabled = b.id === 0;
+  document.getElementById('sNext').disabled = b.id === beads.length-1;
+}
+
+function step(d){
+  const i = (sel ? sel.id : -1) + d;
+  if (i < 0 || i >= beads.length) return;
+  select(beads[i]);
+  frameBead(beads[i]);
+}
+document.getElementById('sPrev').onclick = () => step(-1);
+document.getElementById('sNext').onclick = () => step(1);
+
+// keep a stepped-to bead on screen without yanking the zoom around
+function frameBead(b){
+  const st = b.strand, a = angAt(st, b.depth);
+  const wx = st.x + Math.sin(a)*b.depth, wy = HANGER_Y + Math.cos(a)*b.depth;
+  const m = 60;
+  const sx = w2sx(wx), sy = w2sy(wy);
+  if (sx < m || sx > cvw-m || sy < m || sy > cvh-m){ cam.x = wx; cam.y = wy; clampCam(); }
+  draw();
+}
+
+/* ---------- hover ---------- */
+const tip = document.getElementById('tip'), tipT = document.getElementById('tipT'),
+      tipD = document.getElementById('tipD'), stageEl = document.getElementById('stage');
+let hoverId = -1;
+
+function moveTip(b, sx, sy){
+  if (b.id !== hoverId){
+    hoverId = b.id;
+    tipT.textContent = LEGEND.specificity[b.spec];
+    tipD.textContent = SPEC_NOTE[b.spec];
+  }
+  tip.classList.add('show');
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let x = sx + 16, y = sy + 16;
+  if (x + tw > cvw - 4) x = sx - tw - 16;
+  if (y + th > cvh - 4) y = sy - th - 16;
+  tip.style.left = Math.max(4, x) + 'px';
+  tip.style.top  = Math.max(4, y) + 'px';
+}
+function hideTip(){ tip.classList.remove('show'); hoverId = -1; }
+
+cv.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse' || dragging || ptrs.size) return;
+  syncRect();
+  const sx = ex(e), sy = ey(e);
+  const b = hitTest(sx, sy);
+  if (b){ moveTip(b, sx, sy); cv.style.cursor = 'pointer'; }
+  else { hideTip(); cv.style.cursor = ''; }
+});
+cv.addEventListener('pointerleave', hideTip);
 
 /* ---------- key ---------- */
 const legendEl = document.getElementById('legend');
@@ -801,7 +981,15 @@ function buildLegend(){
 
 document.getElementById('zIn').onclick = () => { unlock(); cam.z = Math.min(Z_MAX, cam.z*1.6); clampCam(); draw(); };
 document.getElementById('zOut').onclick = () => { cam.z = Math.max(minZ, cam.z/1.6); clampCam(); draw(); };
-document.getElementById('zFit').onclick = () => { fit(); };
+document.getElementById('tFit').onclick = () => { sel = null; showPanel(null); hideTip(); fit(); };
+
+const tPause = document.getElementById('tPause');
+tPause.onclick = () => {
+  paused = !paused;
+  tPause.classList.toggle('on', paused);
+  tPause.textContent = paused ? 'Resume motion' : 'Pause motion';
+  if (!paused){ lastT = 0; draw(); }
+};
 
 window.addEventListener('resize', resize);
 const hint = document.getElementById('hint');

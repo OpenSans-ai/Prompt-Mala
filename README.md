@@ -53,17 +53,30 @@ one owns a different property of the glass.
 | Bundling | facet lines cut across the body — smooth (single ask) → multi-faceted (many asks) |
 
 **Decision fatigue** and **hour of day** both wanted colour, which phase already owns.
-They are not drawn on the bead; they appear in the tap sheet with everything else.
+They are not drawn on the bead; they appear in the side panel with everything else.
 
 ## Interaction
 
+The piece hangs on the left; a reading of one bead sits on the right.
+
 - **Drag** across the strands — they sway and click softly, and the view pans with you.
-- **Pinch** (or scroll wheel) to zoom. Far out reads as a pattern; close up shows single beads.
-  Zooming out stops once the curtain spans the full width — the curtain is taller than it
-  is wide, so fitting the height too would strand it in a column with bare paper down both
-  sides. At that point most of the piece is on screen; the tail of the few longest strands
-  runs past the bottom, and you pan down for it.
-- **Tap a bead** for its time and all of its labels.
+- **Pinch** (or scroll wheel) to zoom. Zooming out stops with the whole curtain in frame,
+  so it reads as one hanging object rather than a cropped field. Far out reads as a
+  pattern; close up shows single beads.
+- **Hover** a bead for its specificity — how well-formed that prompt was — and a line on
+  what that means.
+- **Click** a bead to read it in the side panel: the same specificity as a headline, then
+  the analysis bars, then the context it sat in. Previous/Next walk the whole run in order.
+- **Reset view** returns to the full curtain and clears the selection. **Pause motion**
+  freezes the sway; panning, zooming and selection keep working.
+
+Under 860px wide the panel stacks underneath and stays shut until you pick a bead, so it
+does not eat half the piece while empty.
+
+The analysis bars fill to where a label sits on its own scale, in the direction of the
+thing named — Specificity full is *specific*, Bundling full is *many asks*. The value
+printed is always the label. There is deliberately no 0–100 score: these are keyword
+heuristics, and a number would imply precision they do not have.
 
 ## Privacy
 
