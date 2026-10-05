@@ -65,8 +65,17 @@ lifted from the prompts. `private/` is git-ignored and must stay out of anything
 
 ## Rebuilding
 
-`index.html` is assembled from a template plus the inlined data. To regenerate after
-changing labels, re-run the Stage 2/3 scripts and re-inject the data payload.
+`index.html` is assembled from `curtain_template.html` plus the inlined data. The
+template is the whole piece with a single `/*__DATA__*/` line standing in for the
+payload; `index.html` is that file with the marker replaced by three lines —
+`const SESSIONS=…`, `const LEGEND=…`, `const ROWS=…`.
+
+To regenerate after changing labels, re-run the Stage 2/3 scripts and swap the marker
+for the new payload.
+
+**Edit the template, not `index.html`.** They are the same file apart from those three
+lines, so a change made only to `index.html` is silently discarded the next time the
+data is re-injected.
 
 ## Caveats
 
