@@ -67,15 +67,28 @@ They are not drawn on the bead; they appear in the side panel with everything el
 
 ## The doorway
 
-The curtain hangs in an arched opening with daylight behind it. There is no wall or floor
-drawn around it — the page shows through, so the doorway reads as one object on paper
-rather than as a room. The opening is a segmental arch rather than a semicircle because it
-is wider than a single door; its width is set by the 57 strands. Everything that hangs is
-clipped to the opening, so a swinging strand cannot stray outside it.
+The curtain hangs in a cusped stone doorway with daylight behind it. There is no wall or
+floor drawn around it — the page shows through, so the doorway reads as one object on
+paper rather than as a room. Everything that hangs is clipped to the opening, so a
+swinging strand cannot stray outside it. There is no hinged door: the curtain *is* what
+closes the opening.
 
-The arch has to be solved before the beads, because the strands hang from it: the arch is
-derived from the curtain's width, the strand tops from the arch, the bead depths from the
-tops, and only then is the floor placed under the longest strand.
+The arch is a two-centred pointed arch — each half struck from a centre offset past the
+middle, the two meeting in a point at the crown. The rise has to exceed the half-width or
+the centres fall inside and it rounds off into a dome instead of coming to a point. Five
+foils are cut into each half, bulging inward between sharp cusps.
+
+Around it: a moulded lip, then a band of carved rosettes, then a pilaster down each jamb.
+The carving is deliberately small and low in contrast — at the opening zoom it should read
+as texture, and only resolve into flowers when you zoom in. Relief is faked the way a
+carver reads it, a shadow cast down-right and a highlight up-left, with the offsets floored
+at about a pixel so it does not flatten out when zoomed away.
+
+The arch has to be solved before the beads, because the strands hang from it: the arch
+comes from the curtain's width, the strand tops from the arch, the bead depths from the
+tops, and only then is the floor placed under the longest strand. Strands hang from the
+*smooth* arch, not the cusped edge — following the scallops would give the top of the
+curtain a saw-tooth that reads as a mistake.
 
 The light matters to the encoding, not just the mood: the beads are backlit, which is what
 the glass renderer was built for. Specificity is drawn as density, and a thin bead against

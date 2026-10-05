@@ -258,20 +258,43 @@ const worldW = MARGIN * 2 + (nStrands - 1) * STRAND_GAP + W;
 const ARCH = (() => {
   const padX = 38, headroom = 54;
   const inL = -padX, inR = worldW + padX;
-  const openW = inR - inL;
-  const spring = -headroom;                       // where the arch leaves the jamb
-  const rise = Math.min(openW * 0.19, 460);
-  const R = (openW*openW/4 + rise*rise) / (2*rise);
-  return { inL, inR, cx:(inL+inR)/2, openW, spring, rise, R,
-           cy: spring - rise + R, topY: spring - rise };
+  const openW = inR - inL, a = openW/2;
+  const spring = -headroom;                   // where the arch leaves the jamb
+  // Classic two-centred pointed arch: each half is struck from a centre offset
+  // past the middle, and the two meet in a point at the crown. The rise has to
+  // exceed the half-width or the centres fall inside and it rounds off into a
+  // dome instead of coming to a point.
+  const rise = a * 1.2;
+  const d = (rise*rise - a*a) / (2*a);
+  const Rp = a + d;
+  return { inL, inR, cx:(inL+inR)/2, openW, a, spring, rise, d, Rp,
+           nFoil: 5, cusp: Math.min(openW*0.034, 42),
+           topY: spring - rise };
 })();
-// underside of the arch at a given x
-function archY(x){
-  const dx = x - ARCH.cx;
-  return ARCH.cy - Math.sqrt(Math.max(0, ARCH.R*ARCH.R - dx*dx));
+
+// The smooth two-centred arch, ignoring the carved foils. Strands hang from
+// this, not from the cusped edge — following the scallops would give the top
+// of the curtain a saw-tooth that reads as a mistake.
+function baseArchY(x){
+  const dx = x <= ARCH.cx ? x - (ARCH.cx + ARCH.d) : x - (ARCH.cx - ARCH.d);
+  return ARCH.spring - Math.sqrt(Math.max(0, ARCH.Rp*ARCH.Rp - dx*dx));
 }
-const SOFFIT = 10;   // the rail sits just inside the arch
-for (const st of strands) st.top = archY(st.x) + SOFFIT;
+// a point on the carved edge: s runs 0 (left spring) -> 0.5 (crown) -> 1 (right)
+function archEdge(s){
+  const left = s <= 0.5;
+  const u = left ? s/0.5 : (1-s)/0.5;                 // 0 at the jamb, 1 at the crown
+  const thA = Math.atan2(-ARCH.rise, -ARCH.d);
+  const th = -Math.PI + u * (thA + Math.PI);
+  // foils bulge inward between cusps; the low exponent sharpens the points
+  const off = ARCH.cusp * Math.pow(Math.abs(Math.sin(ARCH.nFoil*Math.PI*u)), 0.55);
+  const r = ARCH.Rp - off;
+  const ccx = ARCH.cx + (left ? ARCH.d : -ARCH.d);
+  return [ ccx + (left ? 1 : -1) * r * Math.cos(th), ARCH.spring + r * Math.sin(th) ];
+}
+
+// clear of the cusps, so no strand starts above the carved edge
+const SOFFIT = 14;
+for (const st of strands) st.top = baseArchY(st.x) + ARCH.cusp + SOFFIT;
 
 let worldH = 0;
 {
@@ -315,16 +338,21 @@ for (const st of strands) st.cord = st.len;
    is lit from the far side: that is what makes a bead curtain worth looking at,
    and it is what the whole glass renderer was built for. A segmental arch
    rather than a semicircle, because the opening is wider than a single door. */
+// The carved stone surround: a moulding that follows the arch, then a wide
+// band of relief, then a pilaster down each side.
 const DOOR = Object.assign({}, ARCH, {
-  frame: 40,
-  floorY: worldH + 46   // the jambs run just past the longest strand
+  mould: Math.min(ARCH.openW * 0.030, 34),   // the lip right around the opening
+  band:  Math.min(ARCH.openW * 0.165, 210),  // carved band outside that
+  floorY: worldH + 46                        // jambs run just past the longest strand
 });
+DOOR.outL = DOOR.inL - DOOR.mould - DOOR.band;
+DOOR.outR = DOOR.inR + DOOR.mould + DOOR.band;
+DOOR.outT = DOOR.topY - DOOR.mould - DOOR.band;
 
-// opening, architrave, and a small margin of air around it
 const VIEW = (() => {
-  const air = 26;
-  return { l: DOOR.inL - DOOR.frame - air, r: DOOR.inR + DOOR.frame + air,
-           t: DOOR.topY - DOOR.frame - air, b: DOOR.floorY + DOOR.frame + air };
+  const air = 30;
+  return { l: DOOR.outL - air, r: DOOR.outR + air,
+           t: DOOR.outT - air, b: DOOR.floorY + air };
 })();
 VIEW.w = VIEW.r - VIEW.l; VIEW.h = VIEW.b - VIEW.t;
 VIEW.cx = (VIEW.l + VIEW.r)/2; VIEW.cy = (VIEW.t + VIEW.b)/2;
@@ -654,18 +682,109 @@ function render(t){
   ctx.fillStyle = '#f4efe4';
   ctx.fillRect(0, 0, cvw, cvh);
 
-  // ---- the opening, with daylight behind it ----
-  function openingPath(){
-    const a1 = Math.atan2(DOOR.spring - DOOR.cy, DOOR.inL - DOOR.cx);
-    const a2 = Math.atan2(DOOR.spring - DOOR.cy, DOOR.inR - DOOR.cx);
-    ctx.beginPath();
-    ctx.moveTo(w2x(DOOR.inL), w2y(DOOR.floorY));
-    ctx.lineTo(w2x(DOOR.inL), w2y(DOOR.spring));
-    ctx.arc(w2x(DOOR.cx), w2y(DOOR.cy), DOOR.R*z, a1, a2);
-    ctx.lineTo(w2x(DOOR.inR), w2y(DOOR.floorY));
+  // ---- the carved stone surround ----
+  // The opening, as the cusped edge the stone is carved to.
+  const EDGE_N = 180;
+  // `keep` appends to the current path instead of starting a new one, which is
+  // what the even-odd clip for the stone needs.
+  function openingPath(grow, keep){
+    const g = grow || 0;
+    if (!keep) ctx.beginPath();
+    ctx.moveTo(w2x(DOOR.inL - g), w2y(DOOR.floorY));
+    ctx.lineTo(w2x(DOOR.inL - g), w2y(DOOR.spring));
+    for (let i = 0; i <= EDGE_N; i++){
+      const p = archEdge(i/EDGE_N);
+      // push the whole profile outward from the arch centre when growing
+      const ex2 = p[0] + (p[0] < DOOR.cx ? -g : g);
+      ctx.lineTo(w2x(ex2), w2y(p[1] - g));
+    }
+    ctx.lineTo(w2x(DOOR.inR + g), w2y(DOOR.floorY));
     ctx.closePath();
   }
 
+  const stoneL = w2x(DOOR.outL), stoneR = w2x(DOOR.outR), stoneT = w2y(DOOR.outT),
+        stoneB = w2y(DOOR.floorY);
+  if (stoneR > 0 && stoneL < cvw && stoneB > 0 && stoneT < cvh){
+    const stone = ctx.createLinearGradient(stoneL, stoneT, stoneR, stoneB);
+    stone.addColorStop(0,    '#e3d6bd');
+    stone.addColorStop(0.34, '#d8c8aa');
+    stone.addColorStop(0.68, '#cbb897');
+    stone.addColorStop(1,    '#bda987');
+    ctx.fillStyle = stone;
+    ctx.fillRect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
+
+    // relief carving, lit from the upper left: a light edge above each motif
+    // and a shadow below is all it takes to read as cut stone.
+    const bw = DOOR.band * z;
+    if (bw > 9){
+      const step = DOOR.band * 0.52 * z;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
+      openingPath(DOOR.mould, true);
+      ctx.clip('evenodd');
+
+      // One rosette per cell. Relief is faked the way a carver would read it:
+      // a shadow cast down-right, a highlight up-left, the flat of the stone
+      // between them.
+      // A six-petal rosette: valleys between the petals, tips pushed out, so it
+      // reads as a flower rather than a stud. Kept small and low in contrast —
+      // at this size carving should read as texture, not as relief you can
+      // count. It only resolves into flowers when you zoom in.
+      const petals = 6, rr = step * 0.38, TAU = Math.PI*2;
+      function rosette(cx2, cy2, r, rot, fill){
+        const ri = r * 0.44;
+        ctx.beginPath();
+        ctx.moveTo(cx2 + Math.cos(rot)*ri, cy2 + Math.sin(rot)*ri);
+        for (let p = 0; p < petals; p++){
+          const t0 = rot + p*TAU/petals, t1 = t0 + TAU/petals, tm = (t0+t1)/2;
+          ctx.quadraticCurveTo(cx2 + Math.cos(tm)*r*1.18, cy2 + Math.sin(tm)*r*1.18,
+                               cx2 + Math.cos(t1)*ri,     cy2 + Math.sin(t1)*ri);
+        }
+        ctx.closePath();
+        ctx.fillStyle = fill; ctx.fill();
+      }
+
+      // Walk only the cells that can land on screen. Zoomed in, the stone rect
+      // is many times the viewport, and without this the loop does most of its
+      // work on motifs nobody can see.
+      const yFrom = Math.max(stoneT, -step), yTo = Math.min(stoneB, cvh + step);
+      const xFrom = Math.max(stoneL, -step), xTo = Math.min(stoneR, cvw + step);
+      const gy0 = Math.floor((yFrom - stoneT) / step);
+      for (let gy = gy0, y = stoneT + step*(gy0 + 0.5); y < yTo + step; gy++, y += step){
+        const off = (gy % 2) * step * 0.5;      // stagger, so it reads as carving
+        const x0 = stoneL + step*0.5 + off;
+        const i0 = Math.max(0, Math.floor((xFrom - x0) / step));
+        for (let x = x0 + i0*step; x < xTo + step; x += step){
+          const n = rnd(Math.round(x/step)*7.3 + gy*3.1);
+          const r = rr * (0.84 + n*0.26), rot = n * Math.PI;
+          const sh = Math.max(0.7, r*0.17), hi = Math.max(0.6, r*0.13);
+          rosette(x + sh, y + sh, r, rot, 'rgba(112,88,54,0.22)');
+          rosette(x - hi, y - hi, r, rot, 'rgba(255,250,238,0.30)');
+          rosette(x, y, r, rot, 'rgba(203,185,150,0.34)');
+        }
+      }
+      ctx.restore();
+    }
+
+    // pilaster down each jamb
+    const pw = Math.max(2, DOOR.band * 0.42 * z);
+    for (const px of [stoneL + bw*0.5, stoneR - bw*0.5]){
+      const pg = ctx.createLinearGradient(px - pw/2, 0, px + pw/2, 0);
+      pg.addColorStop(0, 'rgba(120,98,64,0.30)');
+      pg.addColorStop(0.34, 'rgba(255,248,232,0.42)');
+      pg.addColorStop(1, 'rgba(120,98,64,0.34)');
+      ctx.fillStyle = pg;
+      ctx.fillRect(px - pw/2, w2y(DOOR.spring), pw, stoneB - w2y(DOOR.spring));
+    }
+
+    // outer edge of the whole surround
+    ctx.strokeStyle = 'rgba(104,82,50,0.45)';
+    ctx.lineWidth = Math.max(0.8, 2.4*z);
+    ctx.strokeRect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
+  }
+
+  // ---- the opening, with daylight behind it ----
   ctx.save();
   openingPath();
   ctx.clip();
@@ -676,7 +795,7 @@ function render(t){
   ctx.fillStyle = day;
   ctx.fillRect(0, 0, cvw, cvh);
 
-  // the reveal — the thickness of the wall, shading the edge of the opening
+  // the reveal — the thickness of the stone, shading the edge of the opening
   ctx.save();
   ctx.shadowColor = 'rgba(96,74,42,0.5)';
   ctx.shadowBlur = Math.max(6, 26*z);
@@ -685,12 +804,14 @@ function render(t){
   openingPath(); ctx.stroke();
   ctx.restore();
 
-  // The rail the strands hang from, curved to the arch rather than straight
-  // across, so each cord leaves the soffit directly above it.
-  const a1 = Math.atan2(DOOR.spring - DOOR.cy, DOOR.inL - DOOR.cx);
-  const a2 = Math.atan2(DOOR.spring - DOOR.cy, DOOR.inR - DOOR.cx);
+  // The rail the strands hang from, following the arch so each cord leaves the
+  // soffit directly above it.
   ctx.beginPath();
-  ctx.arc(w2x(DOOR.cx), w2y(DOOR.cy), (DOOR.R + SOFFIT)*z, a1, a2);
+  for (let i = 0; i <= 80; i++){
+    const x = DOOR.inL + (DOOR.openW * i/80);
+    const y = baseArchY(x) + ARCH.cusp + SOFFIT;
+    i === 0 ? ctx.moveTo(w2x(x), w2y(y)) : ctx.lineTo(w2x(x), w2y(y));
+  }
   ctx.strokeStyle = 'rgba(70,52,30,0.22)';
   ctx.lineWidth = Math.max(1.4, 7*z);
   ctx.stroke();
@@ -785,25 +906,24 @@ function render(t){
 
   ctx.restore();   // end of the opening clip
 
-  // ---- architrave, over everything that hangs inside ----
-  const fw = DOOR.frame*z;
-  const wood = ctx.createLinearGradient(w2x(DOOR.inL) - fw, 0, w2x(DOOR.inR) + fw, 0);
-  wood.addColorStop(0,    '#6d5132');
-  wood.addColorStop(0.16, '#b89361');
-  wood.addColorStop(0.34, '#8d6c44');
-  wood.addColorStop(0.62, '#c3a070');
-  wood.addColorStop(0.85, '#7d5e3a');
-  wood.addColorStop(1,    '#5d4529');
+  // ---- the moulding round the opening, over everything that hangs inside ----
+  const mw = DOOR.mould*z*2;   // stroke is centred, so half sits outside the edge
   ctx.save();
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = 'rgba(58,42,24,0.3)';
-  ctx.lineWidth = fw + Math.max(1.5, 3*z);
+  const lip = ctx.createLinearGradient(w2x(DOOR.inL) - mw, 0, w2x(DOOR.inR) + mw, 0);
+  lip.addColorStop(0,    '#b9a582');
+  lip.addColorStop(0.22, '#efe4ca');
+  lip.addColorStop(0.5,  '#d6c6a4');
+  lip.addColorStop(0.78, '#e8dcc0');
+  lip.addColorStop(1,    '#ab9674');
+  ctx.strokeStyle = 'rgba(86,66,38,0.34)';
+  ctx.lineWidth = mw + Math.max(1.2, 3*z);
   openingPath(); ctx.stroke();
-  ctx.strokeStyle = wood;
-  ctx.lineWidth = fw;
+  ctx.strokeStyle = lip;
+  ctx.lineWidth = mw;
   openingPath(); ctx.stroke();
-  // a bead of light along the inner lip of the moulding
-  ctx.strokeStyle = 'rgba(255,240,210,0.42)';
+  // a fine line of light along the inner lip
+  ctx.strokeStyle = 'rgba(255,250,236,0.5)';
   ctx.lineWidth = Math.max(0.6, 1.6*z);
   openingPath(); ctx.stroke();
   ctx.restore();
