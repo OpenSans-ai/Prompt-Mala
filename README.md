@@ -78,7 +78,11 @@ middle, the two meeting in a point at the crown. The rise has to exceed the half
 the centres fall inside and it rounds off into a dome instead of coming to a point. Five
 foils are cut into each half, bulging inward between sharp cusps.
 
-Around it: a moulded lip, then a band of carved rosettes, then a pilaster down each jamb.
+Working outward from the opening: a dark timber frame lining it, then a pale stone lip,
+then a band of carved rosettes, then a pilaster down each jamb. Each layer is a stroke
+along the arch profile, offset further out than the last — strokes are centred on the
+path, so a width of 2w reaches w either side, and `DOOR.stoneOff` is where the stonework
+has to start to clear the timber.
 The carving is deliberately small and low in contrast — at the opening zoom it should read
 as texture, and only resolve into flowers when you zoom in. Relief is faked the way a
 carver reads it, a shadow cast down-right and a highlight up-left, with the offsets floored

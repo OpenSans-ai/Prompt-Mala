@@ -339,13 +339,16 @@ for (const st of strands) st.cord = st.len;
 // The carved stone surround: a moulding that follows the arch, then a wide
 // band of relief, then a pilaster down each side.
 const DOOR = Object.assign({}, ARCH, {
-  mould: Math.min(ARCH.openW * 0.030, 34),   // the lip right around the opening
+  wood:  Math.min(ARCH.openW * 0.026, 30),   // dark timber frame lining the opening
+  mould: Math.min(ARCH.openW * 0.030, 34),   // stone lip outside the timber
   band:  Math.min(ARCH.openW * 0.165, 210),  // carved band outside that
   floorY: worldH + 46                        // jambs run just past the longest strand
 });
-DOOR.outL = DOOR.inL - DOOR.mould - DOOR.band;
-DOOR.outR = DOOR.inR + DOOR.mould + DOOR.band;
-DOOR.outT = DOOR.topY - DOOR.mould - DOOR.band;
+// how far the stonework stands off the opening edge
+DOOR.stoneOff = DOOR.wood + DOOR.mould * 2;
+DOOR.outL = DOOR.inL - DOOR.stoneOff - DOOR.band;
+DOOR.outR = DOOR.inR + DOOR.stoneOff + DOOR.band;
+DOOR.outT = DOOR.topY - DOOR.stoneOff - DOOR.band;
 
 const VIEW = (() => {
   const air = 30;
@@ -719,7 +722,7 @@ function render(t){
       ctx.save();
       ctx.beginPath();
       ctx.rect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
-      openingPath(DOOR.mould, true);
+      openingPath(DOOR.stoneOff, true);
       ctx.clip('evenodd');
 
       // One rosette per cell. Relief is faked the way a carver would read it:
@@ -904,26 +907,48 @@ function render(t){
 
   ctx.restore();   // end of the opening clip
 
-  // ---- the moulding round the opening, over everything that hangs inside ----
-  const mw = DOOR.mould*z*2;   // stroke is centred, so half sits outside the edge
+  // ---- frame round the opening, over everything that hangs inside ----
+  // Strokes are centred on the path, so a width of 2w reaches w either side.
+  // The timber sits on the opening edge, the stone lip steps out beyond it.
+  const ww = DOOR.wood*z*2, mw = DOOR.mould*z*2;
+  const l = w2x(DOOR.inL), rgt = w2x(DOOR.inR);
   ctx.save();
   ctx.lineJoin = 'round';
-  const lip = ctx.createLinearGradient(w2x(DOOR.inL) - mw, 0, w2x(DOOR.inR) + mw, 0);
+
+  // stone lip, outside the timber
+  const lip = ctx.createLinearGradient(l - mw, 0, rgt + mw, 0);
   lip.addColorStop(0,    '#b9a582');
   lip.addColorStop(0.22, '#efe4ca');
   lip.addColorStop(0.5,  '#d6c6a4');
   lip.addColorStop(0.78, '#e8dcc0');
   lip.addColorStop(1,    '#ab9674');
-  ctx.strokeStyle = 'rgba(86,66,38,0.34)';
-  ctx.lineWidth = mw + Math.max(1.2, 3*z);
-  openingPath(); ctx.stroke();
   ctx.strokeStyle = lip;
   ctx.lineWidth = mw;
+  openingPath(DOOR.wood + DOOR.mould); ctx.stroke();
+
+  // dark timber frame, lining the opening itself
+  const tim = ctx.createLinearGradient(l - ww, 0, rgt + ww, 0);
+  tim.addColorStop(0,    '#24150a');
+  tim.addColorStop(0.17, '#7a5230');
+  tim.addColorStop(0.33, '#3f2614');
+  tim.addColorStop(0.58, '#6b4526');
+  tim.addColorStop(0.74, '#35200f');
+  tim.addColorStop(0.92, '#7d5531');
+  tim.addColorStop(1,    '#1f1208');
+  ctx.strokeStyle = 'rgba(22,13,6,0.55)';
+  ctx.lineWidth = ww + Math.max(1.2, 3*z);
   openingPath(); ctx.stroke();
-  // a fine line of light along the inner lip
-  ctx.strokeStyle = 'rgba(255,250,236,0.5)';
-  ctx.lineWidth = Math.max(0.6, 1.6*z);
+  ctx.strokeStyle = tim;
+  ctx.lineWidth = ww;
   openingPath(); ctx.stroke();
+
+  // a waxed highlight along the timber, and a dark line where it meets the air
+  ctx.strokeStyle = 'rgba(214,166,108,0.34)';
+  ctx.lineWidth = Math.max(0.6, 2.2*z);
+  openingPath(DOOR.wood*0.45); ctx.stroke();
+  ctx.strokeStyle = 'rgba(18,10,4,0.5)';
+  ctx.lineWidth = Math.max(0.5, 1.4*z);
+  openingPath(DOOR.wood*0.96); ctx.stroke();
   ctx.restore();
 }
 
