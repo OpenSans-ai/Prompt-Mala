@@ -1,7 +1,12 @@
 # Bead curtain
 
-An interactive piece where every bead is one prompt. 2,404 prompts across 78 sessions,
-10 Jun 2026 – 5 Oct 2026.
+An interactive piece where every bead is one prompt, hung as a bead curtain in a lit
+doorway. 2,297 prompts across 57 sessions, 10 Jun 2026 – 5 Oct 2026.
+
+The labelled data holds 2,404 prompts across 78 sessions. Sessions of fewer than ten
+prompts are not drawn: 21 of them, 107 prompts, 4.5% of the total. They hung as stubs of
+one to nine beads and read as fraying rather than as sessions, and each still took a full
+strand's width. `MIN_BEADS` in `index.html` is the threshold.
 
 ## Files
 
@@ -37,6 +42,10 @@ emailed as one attachment. That inlined copy is identical to `beads.json` — no
 - Shape and length are **fixed structure** — they encode word count and nothing else.
 - Vertical spacing is the real pause before that prompt: tight in fast streaks, visible
   bare string where there was a gap.
+- Every cord is cut to the same length, so the curtain hangs square in the doorway rather
+  than ending in a ragged edge. Nothing is encoded in that tail — the pause reading is the
+  spacing *between* beads, and the run below a strand's last bead never carried any. A
+  short session is therefore a few beads at the top of a long bare string.
 
 ## Encoding
 
@@ -46,7 +55,7 @@ one owns a different property of the glass.
 
 | Channel | Encoding |
 |---|---|
-| Phase | colour of the glass — sapphire UI, smoky quartz Setup, garnet Bugs, amethyst UX |
+| Phase | colour of the glass — blue UI, yellow Setup, scarlet Bugs, magenta UX |
 | Clarity | polish — a tight bright specular (clean), softened (minor typos), dull and pitted (heavy typos) |
 | Specificity | density — solid (specific) → thin and pale (vague) |
 | Groundedness | an inclusion: plain, white fleck (image reference), gold band (comparison reference) |
@@ -55,18 +64,30 @@ one owns a different property of the glass.
 **Decision fatigue** and **hour of day** both wanted colour, which phase already owns.
 They are not drawn on the bead; they appear in the side panel with everything else.
 
+## The doorway
+
+The curtain hangs from a rod in an arched opening with daylight behind it, set into a
+plaster wall, with the light falling on the floor below. The opening is a segmental arch
+rather than a semicircle because it is wider than a single door — its width is set by the
+57 strands. Everything that hangs is clipped to the opening, so a swinging strand cannot
+stray out over the wall.
+
+The light matters to the encoding, not just the mood: the beads are backlit, which is what
+the glass renderer was built for. Specificity is drawn as density, and a thin bead against
+a bright opening is exactly what a vague prompt should look like.
+
 ## Interaction
 
 The piece hangs on the left; a reading of one bead sits on the right.
 
 - **Drag** across the strands — they sway and click softly, and the view pans with you.
-- **Pinch** (or scroll wheel) to zoom. Zooming out stops with the whole curtain in frame,
-  so it reads as one hanging object rather than a cropped field. Far out reads as a
-  pattern; close up shows single beads.
-- **Hover** a bead for its specificity — how well-formed that prompt was — and a line on
-  what that means.
-- **Click** a bead to read it in the side panel: the same specificity as a headline, then
-  the analysis bars, then the context it sat in. Previous/Next walk the whole run in order.
+- **Pinch** (or scroll wheel) to zoom. Zooming out stops with the whole doorway in frame,
+  so it reads as a curtain hanging in an opening rather than a cropped field. Far out
+  reads as a pattern; close up shows single beads lit from behind.
+- **Hover** a bead and the side panel reads it straight away — specificity as the
+  headline, then the analysis, then the context. A small label follows the pointer too.
+- **Click** to pin a bead, so the panel holds it when the pointer moves off. Previous/Next
+  walk the whole run in order.
 - **Reset view** returns to the full curtain and clears the selection. **Pause motion**
   freezes the sway; panning, zooming and selection keep working.
 

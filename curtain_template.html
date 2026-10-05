@@ -221,22 +221,47 @@ function beadGap(g){ return g < 0 ? 0 : 1.5 + 8 * (1 - Math.exp(-g / 1000)); }
 function rnd(seed){ let x = Math.sin(seed * 12.9898) * 43758.5453; return x - Math.floor(x); }
 
 /* ---------- build beads + strands ---------- */
+// Sessions of fewer than MIN_BEADS are left out. They were single stubs hanging
+// a few beads below the rod, which read as fraying rather than as sessions, and
+// they stretched the curtain sideways for very little content.
+const MIN_BEADS = 10;
+
+const KEPT = (() => {
+  const n = new Int32Array(SESSIONS.length);
+  for (const r of ROWS) n[r[0]]++;
+  const keep = [];
+  for (let i = 0; i < SESSIONS.length; i++) if (n[i] >= MIN_BEADS) keep.push(i);
+  return keep;
+})();
+// old session index -> column in the curtain, or -1 if dropped
+const COL = new Int32Array(SESSIONS.length).fill(-1);
+KEPT.forEach((old, i) => { COL[old] = i; });
+const nStrands = KEPT.length;
+const DROPPED_SESSIONS = SESSIONS.length - nStrands;
+
 const beads = [], strands = [];
-for (let i = 0; i < SESSIONS.length; i++)
+for (let i = 0; i < nStrands; i++)
   strands.push({ x: MARGIN + i * STRAND_GAP, len: 0, a: 0, v: 0, lastClick: 0 });
 
 let worldH = 0;
 {
-  const cursor = new Float64Array(SESSIONS.length).fill(HANGER_Y);
-  for (let i = 0; i < ROWS.length; i++) {
-    const r = ROWS[i], sid = r[0], wc = r[4];
+  const cursor = new Float64Array(nStrands).fill(HANGER_Y);
+  // per-strand running count, since dropping sessions renumbers the beads
+  const ord = new Int32Array(nStrands);
+  const kept = ROWS.filter(r => COL[r[0]] >= 0);
+  const slen = new Int32Array(nStrands);
+  for (const r of kept) slen[COL[r[0]]]++;
+
+  for (let i = 0; i < kept.length; i++) {
+    const r = kept[i], sid = COL[r[0]], wc = r[4];
     const L = beadShape(wc) === SHAPE_CIRCLE ? W : beadLen(wc);
     cursor[sid] += beadGap(r[11]);
     const depth = cursor[sid] + L / 2 - HANGER_Y;
     cursor[sid] += L;
-    const t = r[2] > 1 ? r[1] / (r[2] - 1) : 0;
+    const o = ord[sid]++;
+    const t = slen[sid] > 1 ? o / (slen[sid] - 1) : 0;
     beads.push({
-      id: i, sid: sid, ord: r[1], slen: r[2], ts: r[3], wc: wc,
+      id: i, sid: sid, session: r[0], ord: o, slen: slen[sid], ts: r[3], wc: wc,
       phase: r[5], clarity: r[6], spec: r[7], ground: r[8], bundle: r[9], hour: r[10], gap: r[11],
       L: L, shape: beadShape(wc), depth: depth,
       fat: t, fatIdx: t < 1 / 3 ? 0 : t < 2 / 3 ? 1 : 2,
@@ -244,14 +269,52 @@ let worldH = 0;
       tilt: (rnd(i * 2.3 + 11) - 0.5) * 0.055
     });
   }
-  for (let i = 0; i < SESSIONS.length; i++) {
+  for (let i = 0; i < nStrands; i++) {
     strands[i].len = cursor[i] - HANGER_Y;
     if (cursor[i] > worldH) worldH = cursor[i];
   }
 }
-const worldW = MARGIN * 2 + (SESSIONS.length - 1) * STRAND_GAP + W;
+const worldW = MARGIN * 2 + (nStrands - 1) * STRAND_GAP + W;
 worldH += 30;
 for (const b of beads) beads[b.id].strand = strands[b.sid];
+
+// Every cord is cut to the same length, so the curtain hangs square in the
+// doorway instead of ending in a ragged edge halfway down. This costs nothing
+// in meaning: the pause encoding is the spacing *between* beads, and the tail
+// below the last bead of a strand was never carrying any. `len` stays the bead
+// extent, which is what the sway and the hit testing are built on.
+{
+  const cord = worldH - HANGER_Y - 12;
+  for (const st of strands) st.cord = cord;
+}
+
+/* ---------- the doorway ----------
+   The curtain hangs in an arched opening with daylight behind it, so the glass
+   is lit from the far side: that is what makes a bead curtain worth looking at,
+   and it is what the whole glass renderer was built for. A segmental arch
+   rather than a semicircle, because the opening is wider than a single door. */
+const DOOR = (() => {
+  const padX = 38, headroom = 62, sill = 56, frame = 40;
+  const inL = -padX, inR = worldW + padX;
+  const openW = inR - inL;
+  const spring = HANGER_Y - headroom;              // where the arch leaves the jamb
+  const rise = Math.min(openW * 0.19, 460);        // how far it lifts above that
+  const R = (openW*openW/4 + rise*rise) / (2*rise);
+  const cy = spring - rise + R;                    // centre of the arc, below the crown
+  const floorY = worldH + sill;
+  return { inL, inR, cx:(inL+inR)/2, openW, spring, rise, R, cy, frame,
+           topY: spring - rise, floorY };
+})();
+
+// everything the camera should be able to see: opening, architrave, a margin of
+// wall around it, and a strip of floor underneath
+const VIEW = (() => {
+  const wall = 40;
+  return { l: DOOR.inL - DOOR.frame - wall, r: DOOR.inR + DOOR.frame + wall,
+           t: DOOR.topY - DOOR.frame - wall, b: DOOR.floorY + 64 };
+})();
+VIEW.w = VIEW.r - VIEW.l; VIEW.h = VIEW.b - VIEW.t;
+VIEW.cx = (VIEW.l + VIEW.r)/2; VIEW.cy = (VIEW.t + VIEW.b)/2;
 
 /* ---------- colour helpers ---------- */
 function hex2rgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
@@ -288,10 +351,10 @@ const BRIGHT = [-0.06, 0, 0.07];
 // deep = the dense shadowed edge, caustic = the pool of light that makes it
 // through the glass and lands inside.
 const GLASS = [
-  { base:'#3C8BD9', tint:'#CFE2FF', deep:'#0D2550', caustic:'#7FB8FF' }, // UI     — sapphire
-  { base:'#8C8A84', tint:'#EFEBE1', deep:'#2B2823', caustic:'#CFC9BC' }, // Setup  — smoky quartz
-  { base:'#DC4E4D', tint:'#FFCCC0', deep:'#4F1210', caustic:'#FF8E76' }, // Bugs   — garnet
-  { base:'#8077DE', tint:'#DCD5FF', deep:'#241D5C', caustic:'#AEA2FF' }, // UX     — amethyst
+  { base:'#0F62FE', tint:'#C2DAFF', deep:'#05246E', caustic:'#5B9BFF' }, // UI    — electric blue
+  { base:'#FFC400', tint:'#FFF2BE', deep:'#7A5A00', caustic:'#FFE066' }, // Setup — yellow
+  { base:'#FF2D1F', tint:'#FFC7C0', deep:'#7E0F06', caustic:'#FF7F68' }, // Bugs  — scarlet
+  { base:'#E0329B', tint:'#FFC6E7', deep:'#6E0C47', caustic:'#FF72C6' }, // UX    — magenta
 ];
 
 function beadStyle(b){
@@ -507,23 +570,22 @@ function resize(){
   syncRect();
   cv.width = Math.round(cvw*dpr); cv.height = Math.round(cvh*dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // Zoom out stops with the whole curtain on screen — it hangs in the frame as
-  // one object, the way you would look at the real thing, rather than being
-  // cropped. The piece is close to square, so little is wasted either side.
-  minZ = Math.min(cvw/worldW, cvh/worldH) * 0.96;
+  // Zoom out stops with the whole doorway on screen, so the piece reads as a
+  // curtain hanging in an opening rather than as a field of beads.
+  minZ = Math.min(cvw/VIEW.w, cvh/VIEW.h);
   if (cam.z < minZ) cam.z = minZ;
   draw();
 }
 function fit(){
-  cam.z = minZ; cam.x = worldW/2; cam.y = worldH/2;
+  cam.z = minZ; cam.x = VIEW.cx; cam.y = VIEW.cy;
   clampCam(); draw();
 }
 function clampCam(){
   const vw = cvw/cam.z, vh = cvh/cam.z;
-  if (worldW <= vw) cam.x = worldW/2;
-  else cam.x = Math.max(vw/2, Math.min(worldW - vw/2, cam.x));
-  if (worldH <= vh) cam.y = worldH/2;
-  else cam.y = Math.max(vh/2, Math.min(worldH - vh/2, cam.y));
+  if (VIEW.w <= vw) cam.x = VIEW.cx;
+  else cam.x = Math.max(VIEW.l + vw/2, Math.min(VIEW.r - vw/2, cam.x));
+  if (VIEW.h <= vh) cam.y = VIEW.cy;
+  else cam.y = Math.max(VIEW.t + vh/2, Math.min(VIEW.b - vh/2, cam.y));
 }
 const s2wx = sx => (sx - cvw/2)/cam.z + cam.x;
 const s2wy = sy => (sy - cvh/2)/cam.z + cam.y;
@@ -564,22 +626,75 @@ function render(t){
   lastT = t; needs = false;
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const bg = ctx.createRadialGradient(cvw*0.34, cvh*0.2, 10, cvw*0.5, cvh*0.55, Math.max(cvw,cvh)*1.05);
-  bg.addColorStop(0, '#f8f4ea'); bg.addColorStop(0.55, '#f4efe4'); bg.addColorStop(1, '#ece5d7');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, cvw, cvh);
 
   const z = cam.z;
   const ox = cvw/2 - cam.x*z, oy = cvh/2 - cam.y*z;
   const w2x = wx => wx*z + ox, w2y = wy => wy*z + oy;
 
-  ctx.fillStyle = 'rgba(80,62,40,0.14)';
-  ctx.fillRect(0, w2y(HANGER_Y) - 3*z, cvw, 7*z);
-  const hg = ctx.createLinearGradient(0, w2y(HANGER_Y) - 4*z, 0, w2y(HANGER_Y) + 4*z);
-  hg.addColorStop(0, '#8a6b47'); hg.addColorStop(0.4, '#c4a67c'); hg.addColorStop(1, '#5c452d');
+  // ---- the wall the doorway is cut into ----
+  const wall = ctx.createLinearGradient(0, 0, cvw*0.35, cvh);
+  wall.addColorStop(0, '#efe6d3'); wall.addColorStop(0.5, '#e7dcc6'); wall.addColorStop(1, '#dbcfb6');
+  ctx.fillStyle = wall; ctx.fillRect(0, 0, cvw, cvh);
+
+  // floor, catching the light that comes through
+  const fy = w2y(DOOR.floorY);
+  if (fy < cvh){
+    const fl = ctx.createLinearGradient(0, fy, 0, cvh);
+    fl.addColorStop(0, '#cdbb9b'); fl.addColorStop(1, '#ded0b4');
+    ctx.fillStyle = fl; ctx.fillRect(0, fy, cvw, cvh - fy);
+    const pool = ctx.createRadialGradient(w2x(DOOR.cx), fy, 0, w2x(DOOR.cx), fy, DOOR.openW*z*0.78);
+    pool.addColorStop(0, 'rgba(255,241,205,0.72)'); pool.addColorStop(1, 'rgba(255,241,205,0)');
+    ctx.fillStyle = pool; ctx.fillRect(0, fy, cvw, cvh - fy);
+  }
+
+  // ---- the opening, with daylight behind it ----
+  function openingPath(){
+    const a1 = Math.atan2(DOOR.spring - DOOR.cy, DOOR.inL - DOOR.cx);
+    const a2 = Math.atan2(DOOR.spring - DOOR.cy, DOOR.inR - DOOR.cx);
+    ctx.beginPath();
+    ctx.moveTo(w2x(DOOR.inL), w2y(DOOR.floorY));
+    ctx.lineTo(w2x(DOOR.inL), w2y(DOOR.spring));
+    ctx.arc(w2x(DOOR.cx), w2y(DOOR.cy), DOOR.R*z, a1, a2);
+    ctx.lineTo(w2x(DOOR.inR), w2y(DOOR.floorY));
+    ctx.closePath();
+  }
+
+  ctx.save();
+  openingPath();
+  ctx.clip();
+  const day = ctx.createLinearGradient(0, w2y(DOOR.topY), 0, w2y(DOOR.floorY));
+  day.addColorStop(0,    '#fffdf4');
+  day.addColorStop(0.42, '#fff8e4');
+  day.addColorStop(1,    '#f3e4c4');
+  ctx.fillStyle = day;
+  ctx.fillRect(0, 0, cvw, cvh);
+
+  // the reveal — the thickness of the wall, shading the edge of the opening
+  ctx.save();
+  ctx.shadowColor = 'rgba(96,74,42,0.5)';
+  ctx.shadowBlur = Math.max(6, 26*z);
+  ctx.lineWidth = Math.max(2, 20*z);
+  ctx.strokeStyle = 'rgba(96,74,42,0.5)';
+  openingPath(); ctx.stroke();
+  ctx.restore();
+
+  // the rod, inside the opening
+  const ry = w2y(HANGER_Y);
+  ctx.fillStyle = 'rgba(70,52,30,0.2)';
+  ctx.fillRect(w2x(DOOR.inL), ry - 2*z, DOOR.openW*z, 8*z);
+  const hg = ctx.createLinearGradient(0, ry - 4.5*z, 0, ry + 4.5*z);
+  hg.addColorStop(0, '#7d5f3d'); hg.addColorStop(0.38, '#c8a977'); hg.addColorStop(1, '#4f3a24');
   ctx.fillStyle = hg;
-  ctx.fillRect(0, w2y(HANGER_Y) - 2.2*z, cvw, 4.6*z);
+  ctx.fillRect(w2x(DOOR.inL), ry - 2.4*z, DOOR.openW*z, 5*z);
+  ctx.restore();
 
   const padX = 60, padY = 80;
+
+  // Everything that hangs is confined to the opening, so a swinging strand
+  // cannot stray out over the wall.
+  ctx.save();
+  openingPath();
+  ctx.clip();
 
   // The cord is drawn twice: once behind the beads, then again over them at a
   // fraction of the strength. The second pass is the part of the string you can
@@ -593,13 +708,13 @@ function render(t){
       if (sxTop < -padX || sxTop > cvw + padX) continue;
       ctx.beginPath();
       const step = Math.max(24, 70/Math.max(z, 0.08));
-      for (let d = 0; d <= st.len; d += step){
+      for (let d = 0; d <= st.cord; d += step){
         const a = angAt(st, d);
         const px = w2x(st.x + Math.sin(a)*d), py = w2y(HANGER_Y + Math.cos(a)*d);
         d === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
       }
-      const aE = angAt(st, st.len);
-      ctx.lineTo(w2x(st.x + Math.sin(aE)*st.len), w2y(HANGER_Y + Math.cos(aE)*st.len));
+      const aE = angAt(st, st.cord);
+      ctx.lineTo(w2x(st.x + Math.sin(aE)*st.cord), w2y(HANGER_Y + Math.cos(aE)*st.cord));
       ctx.stroke();
     }
   }
@@ -608,7 +723,7 @@ function render(t){
   // Below this the beads are drawn as plain rects. It has to sit under the
   // fit-width zoom or the opening view — the one everybody sees — would be
   // blocks rather than glass.
-  const far = z < 0.2;
+  const far = z < 0.12;
   const s = far ? 0 : pickScale();
 
   for (const b of beads){
@@ -656,6 +771,38 @@ function render(t){
     ctx.stroke();
     ctx.restore();
   }
+
+  ctx.restore();   // end of the opening clip
+
+  // ---- architrave, over everything that hangs inside ----
+  const fw = DOOR.frame*z;
+  const wood = ctx.createLinearGradient(w2x(DOOR.inL) - fw, 0, w2x(DOOR.inR) + fw, 0);
+  wood.addColorStop(0,    '#6d5132');
+  wood.addColorStop(0.16, '#b89361');
+  wood.addColorStop(0.34, '#8d6c44');
+  wood.addColorStop(0.62, '#c3a070');
+  wood.addColorStop(0.85, '#7d5e3a');
+  wood.addColorStop(1,    '#5d4529');
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(58,42,24,0.3)';
+  ctx.lineWidth = fw + Math.max(1.5, 3*z);
+  openingPath(); ctx.stroke();
+  ctx.strokeStyle = wood;
+  ctx.lineWidth = fw;
+  openingPath(); ctx.stroke();
+  // a bead of light along the inner lip of the moulding
+  ctx.strokeStyle = 'rgba(255,240,210,0.42)';
+  ctx.lineWidth = Math.max(0.6, 1.6*z);
+  openingPath(); ctx.stroke();
+  ctx.restore();
+
+  // threshold
+  if (fy < cvh){
+    ctx.fillStyle = 'rgba(70,52,30,0.26)';
+    ctx.fillRect(w2x(DOOR.inL) - fw/2, fy - 1.5*z, DOOR.openW*z + fw, Math.max(1.2, 3*z));
+  }
+
   requestAnimationFrame(render);
 }
 
@@ -853,8 +1000,10 @@ function plainRow(name, value, note){
 const sEmpty = document.getElementById('sEmpty'), sBody = document.getElementById('sBody');
 
 const appEl = document.getElementById('app');
+let shownId = -1;   // which bead the panel is currently reading
 
 function showPanel(b){
+  shownId = b ? b.id : -1;
   // drives the stacked-layout drawer as well as the panel contents
   const was = appEl.classList.contains('sel');
   appEl.classList.toggle('sel', !!b);
@@ -870,7 +1019,7 @@ function showPanel(b){
   document.getElementById('sDesc').textContent = SPEC_NOTE[b.spec];
   document.getElementById('sMeta').textContent =
     da + ' ' + MONTHS[mo-1] + ' 2026, ' + b.ts.slice(6) +
-    ' · strand ' + (b.sid+1) + ' of ' + SESSIONS.length +
+    ' · strand ' + (b.sid+1) + ' of ' + nStrands +
     ' · bead ' + (b.ord+1) + ' of ' + b.slen;
 
   document.getElementById('sBars').innerHTML =
@@ -932,15 +1081,28 @@ function moveTip(b, sx, sy){
 }
 function hideTip(){ tip.classList.remove('show'); hoverId = -1; }
 
+// Hovering reads a bead straight into the panel; clicking pins it so it stays
+// when the pointer wanders off. Leaving the fabric falls back to the pinned
+// bead rather than emptying the panel, which would make it flicker.
 cv.addEventListener('pointermove', e => {
   if (e.pointerType !== 'mouse' || dragging || ptrs.size) return;
   syncRect();
   const sx = ex(e), sy = ey(e);
   const b = hitTest(sx, sy);
-  if (b){ moveTip(b, sx, sy); cv.style.cursor = 'pointer'; }
-  else { hideTip(); cv.style.cursor = ''; }
+  if (b){
+    moveTip(b, sx, sy);
+    cv.style.cursor = 'pointer';
+    if (b.id !== shownId) showPanel(b);
+  } else {
+    hideTip();
+    cv.style.cursor = '';
+    if (sel && shownId !== sel.id) showPanel(sel);
+  }
 });
-cv.addEventListener('pointerleave', hideTip);
+cv.addEventListener('pointerleave', () => {
+  hideTip();
+  if (sel && shownId !== sel.id) showPanel(sel);
+});
 
 /* ---------- key ---------- */
 const legendEl = document.getElementById('legend');
@@ -952,7 +1114,7 @@ function buildLegend(){
   for (const b of beads) counts[b.phase]++;
 
   document.getElementById('mCount').textContent =
-    nf.format(beads.length) + ' prompts · ' + SESSIONS.length + ' sessions';
+    nf.format(beads.length) + ' prompts · ' + nStrands + ' sessions';
 
   legendEl.innerHTML = '';
   LEGEND.phase.forEach((lab, i) => {
