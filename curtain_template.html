@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Bead curtain</title>
+<title>Garland curtain</title>
 <style>
   :root{
     --paper:#f4efe4;
@@ -47,7 +47,9 @@
   .lbl{font-size:9.5px; font-weight:650; letter-spacing:0.155em; text-transform:uppercase; color:var(--ink-3);}
 
   /* ---- the piece ---- */
-  #stage{flex:1 1 auto; min-height:0; position:relative;}
+  /* The key grew enough to squeeze the canvas to nothing on a short window.
+     The piece keeps its floor and the key scrolls instead. */
+  #stage{flex:1 1 auto; min-height:190px; position:relative;}
   canvas#cv{position:absolute; inset:0; display:block; width:100%; height:100%; touch-action:none;}
 
   /* floating control bar, centred under the piece */
@@ -73,15 +75,20 @@
   #tip .d{margin-top:5px; font-size:11.5px; line-height:1.35; color:var(--ink-2);}
 
   /* ---- caption ---- */
-  #caption{flex:0 0 auto; border-top:1px solid var(--rule-firm);
+  #caption{flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+    border-top:1px solid var(--rule-firm);
     padding:8px 0 calc(10px + env(safe-area-inset-bottom));}
   #capTop{display:flex; justify-content:space-between; align-items:baseline; gap:16px;}
   #hint{color:var(--ink-3); font-size:10.5px; letter-spacing:0.01em; transition:opacity .6s; text-align:right;}
 
-  #legend{display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin-top:7px;}
-  .lg{display:flex; align-items:baseline; gap:7px; font-size:12.5px; color:var(--ink);}
-  .lg canvas{width:13px; height:auto; display:block; align-self:center;}
-  .lg .n{color:var(--ink-3); font-size:11px;}
+  #legend{display:flex; gap:9px 26px; flex-wrap:wrap; align-items:flex-start; margin-top:8px;}
+  .kgrp{display:flex; flex-direction:column; gap:5px;}
+  .krow{display:flex; gap:14px; flex-wrap:wrap; align-items:center;}
+  .lg{display:flex; align-items:center; gap:5px;}
+  .lg canvas{width:25px; height:25px; display:block; flex:0 0 auto;}
+  .lgt{display:flex; flex-direction:column; line-height:1.2;}
+  .lgt b{font-weight:560; font-size:12px; color:var(--ink);}
+  .lgt i{font-style:normal; font-size:10.5px; color:var(--ink-3);}
 
   #subkey{display:flex; gap:5px 18px; flex-wrap:wrap; margin-top:6px;
     font-size:10.5px; color:var(--ink-3);}
@@ -128,8 +135,8 @@
 
   <div id="main">
     <header id="mast">
-      <h1>Bead curtain</h1>
-      <p class="stand">Every bead is one prompt. Every strand is one session, read top to
+      <h1>Garland curtain</h1>
+      <p class="stand">Every flower is one prompt. Every garland is one session, read top to
         bottom in the order it was typed.</p>
       <div class="dek">
         <span class="lbl" id="mCount">&nbsp;</span>
@@ -151,8 +158,8 @@
 
     <footer id="caption">
       <div id="capTop">
-        <span class="lbl">Phase</span>
-        <span id="hint">drag the strands &middot; scroll to zoom &middot; click a bead</span>
+        <span class="lbl">Key</span>
+        <span id="hint">drag the garlands &middot; scroll to zoom &middot; click a flower</span>
       </div>
       <div id="legend"></div>
       <div id="subkey"></div>
@@ -161,7 +168,7 @@
 
   <aside id="side">
     <div id="sEmpty" class="empty">
-      Hover a bead to see what kind of prompt it was. Click one to read it in full here.
+      Hover a flower to see what kind of prompt it was. Click one to read it in full here.
     </div>
     <div id="sBody" hidden>
       <div id="sType"></div>
@@ -191,36 +198,48 @@
 
 </div>
 
-<script>
 /*__DATA__*/
 
 /* ---------- fixed structure ---------- */
-// STRAND_GAP against W is what decides whether this reads as a curtain or as a
-// scatter of columns: at 34 the bead filled 41% of its slot and the paper
-// between strands dominated. Tightening it trades a little vertical reach for
-// density — see the note on fit() for why width is the binding dimension.
+// STRAND_GAP against the widest bloom is what decides whether this reads as a
+// curtain of garlands or as a scatter of columns.
 // There is no single hanging line: strands start at the arch soffit above
-// them, so each carries its own `top` and depths are measured from there.
-const W = 14, STRAND_GAP = 30, MARGIN = 30, PAD_W = 7;
-// Bead lengths and pause gaps are both on a compressed vertical scale. One
-// 98-prompt session is nearly four times the median strand, and at full scale
-// it stretched the world so tall that fitting it left the curtain stranded in
-// the middle of the screen. Shortening both keeps every relationship intact
-// (longer prompt is still a longer bead, longer pause still more bare cord)
-// while bringing the whole piece closer to the shape of a screen.
-//
-// L_MIN cannot go much below this: a <=5 word prompt is a circle of diameter W,
-// so beadLen(6) has to stay above W or a 6-word bead would read as shorter than
-// a 5-word one. That floor is what sets the height of the whole piece.
-const L_MIN = 10, L_MAX = 29, L_K = 18;
-const SHAPE_CIRCLE = 0, SHAPE_PILL = 1, SHAPE_DIAMOND = 2, SHAPE_TUBE = 3;
-const SHAPE_NAMES = ['seed (circle)','barrel (pill)','faceted (diamond)','tube'];
+// them, so each carries its own `top` and depths are measured from them.
+const STRAND_GAP = 27, MARGIN = 30, PAD_W = 9;
 
-function beadLen(wc){ return L_MIN + (L_MAX - L_MIN) * (1 - Math.exp(-wc / L_K)); }
-function beadShape(wc){ return wc <= 5 ? SHAPE_CIRCLE : wc <= 15 ? SHAPE_PILL : wc <= 40 ? SHAPE_DIAMOND : SHAPE_TUBE; }
+// A bloom is round, so one number is both its width and its height — word count
+// now reads as how open the flower is rather than how long a bead is. Growth is
+// fast then levels off, so a 60-word prompt is a full head and a 3-word one is
+// a tight bud without the longest prompt dwarfing the rest.
+const D_MIN = 11, D_MAX = 31, D_K = 17;
+const KIND_BUD = 0, KIND_SMALL = 1, KIND_FULL = 2, KIND_DOUBLE = 3;
+const KIND_NAMES = ['bud','half-open','full bloom','double bloom'];
+
+function bloomSize(wc){ return D_MIN + (D_MAX - D_MIN) * (1 - Math.exp(-wc / D_K)); }
+function bloomKind(wc){ return wc <= 5 ? KIND_BUD : wc <= 15 ? KIND_SMALL : wc <= 40 ? KIND_FULL : KIND_DOUBLE; }
 function beadGap(g){ return g < 0 ? 0 : 1.5 + 8 * (1 - Math.exp(-g / 1000)); }
+// widest bloom, for layout and hit testing
+const D_WIDEST = bloomSize(1e4);
 
 function rnd(seed){ let x = Math.sin(seed * 12.9898) * 43758.5453; return x - Math.floor(x); }
+
+// Paper tooth, laid over the finished frame. Everything under it is smooth
+// gradients, and this is what stops them reading as vector art.
+const GRAIN = (() => {
+  const n = 160, c = document.createElement('canvas');
+  c.width = c.height = n;
+  const x = c.getContext('2d'), img = x.createImageData(n, n);
+  for (let i = 0; i < n*n; i++){
+    // three samples summed, so the noise clumps like fibre instead of
+    // sitting flat like video grain
+    const v = 128 + (Math.random() + Math.random() + Math.random() - 1.5) * 54;
+    img.data[i*4] = img.data[i*4+1] = img.data[i*4+2] = v;
+    img.data[i*4+3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  return c;
+})();
+let grainFill = null;
 
 /* ---------- build beads + strands ---------- */
 // Sessions of fewer than MIN_BEADS are left out. They were single stubs hanging
@@ -243,9 +262,16 @@ const DROPPED_SESSIONS = SESSIONS.length - nStrands;
 
 const beads = [], strands = [];
 for (let i = 0; i < nStrands; i++)
-  strands.push({ x: MARGIN + i * STRAND_GAP, len: 0, a: 0, v: 0, lastClick: 0 });
+  strands.push({
+    // A hand-hung curtain is not a grid. Each cord is knotted a little off its
+    // nominal spacing and hangs with a slight set to it; without this the
+    // strands line up into columns and the whole thing reads as a chart.
+    x: MARGIN + i * STRAND_GAP + (rnd(i*5.7 + 1.3) - 0.5) * STRAND_GAP * 0.22,
+    lean: (rnd(i*9.1 + 4.7) - 0.5) * 0.035,
+    len: 0, a: 0, v: 0, lastClick: 0
+  });
 
-const worldW = MARGIN * 2 + (nStrands - 1) * STRAND_GAP + W;
+const worldW = MARGIN * 2 + (nStrands - 1) * STRAND_GAP + D_WIDEST;
 
 /* ---------- the arch ----------
    The arch has to be worked out before the beads, because the strands hang
@@ -305,7 +331,7 @@ let worldH = 0;
 
   for (let i = 0; i < kept.length; i++) {
     const r = kept[i], sid = COL[r[0]], wc = r[4];
-    const L = beadShape(wc) === SHAPE_CIRCLE ? W : beadLen(wc);
+    const L = bloomSize(wc);
     cursor[sid] += beadGap(r[11]);
     const depth = cursor[sid] + L / 2 - strands[sid].top;
     cursor[sid] += L;
@@ -314,10 +340,12 @@ let worldH = 0;
     beads.push({
       id: i, sid: sid, session: r[0], ord: o, slen: slen[sid], ts: r[3], wc: wc,
       phase: r[5], clarity: r[6], spec: r[7], ground: r[8], bundle: r[9], hour: r[10], gap: r[11],
-      L: L, shape: beadShape(wc), depth: depth,
+      L: L, kind: bloomKind(wc), depth: depth,
       fat: t, fatIdx: t < 1 / 3 ? 0 : t < 2 / 3 ? 1 : 2,
       bright: Math.floor(rnd(i * 1.7 + 3) * 3),
-      tilt: (rnd(i * 2.3 + 11) - 0.5) * 0.055
+      tilt: (rnd(i * 2.3 + 11) - 0.5) * 0.055,
+      // a bead never sits dead centre on its thread
+      jx: (rnd(i * 4.1 + 6.9) - 0.5) * 2.2
     });
   }
   for (let i = 0; i < nStrands; i++) {
@@ -389,56 +417,72 @@ const BRIGHT = [-0.06, 0, 0.07];
    Decision fatigue and hour of day both wanted colour, which phase already
    owns, so they live in the tap sheet rather than on the bead. */
 
-// Each phase is a different stone. tint = where the light enters, base = body,
-// deep = the dense shadowed edge, caustic = the pool of light that makes it
-// through the glass and lands inside.
-const GLASS = [
-  { base:'#0F62FE', tint:'#C2DAFF', deep:'#05246E', caustic:'#5B9BFF' }, // UI    — electric blue
-  { base:'#FFC400', tint:'#FFF2BE', deep:'#7A5A00', caustic:'#FFE066' }, // Setup — yellow
-  { base:'#FF2D1F', tint:'#FFC7C0', deep:'#7E0F06', caustic:'#FF7F68' }, // Bugs  — scarlet
-  { base:'#E0329B', tint:'#FFC6E7', deep:'#6E0C47', caustic:'#FF72C6' }, // UX    — magenta
+// Each phase is a different flower. base = the body of the petal, tint = where
+// it thins out at the edge, deep = the dry darker pigment at the throat,
+// caustic = the warm light sitting in the middle of the head.
+// Pulled off the pure screen hues and toward pigment — these have to look mixed
+// rather than picked.
+const BLOOM = [
+  { base:'#3F6FD8', tint:'#CBDCF7', deep:'#1B2F6B', caustic:'#7FA6EC' }, // UI    — cornflower
+  { base:'#E9A52A', tint:'#FBE6B4', deep:'#8A5612', caustic:'#F7CE72' }, // Setup — marigold
+  { base:'#D44433', tint:'#F7C9BC', deep:'#781D14', caustic:'#EE8468' }, // Bugs  — vermilion
+  { base:'#C04C92', tint:'#F3C9E2', deep:'#67204B', caustic:'#DE8DBE' }, // UX    — bougainvillea
 ];
 
 function beadStyle(b){
   return {
-    g: GLASS[b.phase],
-    gloss:   [0.95, 0.5, 0.12][b.clarity],
-    speckle: b.clarity === 2,
+    g: BLOOM[b.phase],
+    // clarity -> how wet the brush was. A clean prompt holds its edge; a
+    // typo-ridden one bleeds into the paper.
+    soft:    [0, 0.5, 1][b.clarity],
+    lit:     [1, 0.6, 0.25][b.clarity],
     alpha:   [1, 0.88, 0.7, 0.5][b.spec],
-    fleck:   b.ground === 1,
-    band:    b.ground === 2,
-    facets:  [0, 2, 4][b.bundle],
+    petals:  [5, 8, 12][b.bundle],
+    leaf:    b.ground === 1,
+    bud:     b.ground === 2,
     vk: 'p'+b.phase+'c'+b.clarity+'s'+b.spec+'g'+b.ground+'b'+b.bundle
   };
 }
 
-/* ---------- shape path ---------- */
-function shapePath(x, w, h, shape){
+/* ---------- painted blooms ----------
+   Every mark here is laid down the way a brush would: a wet base wash, petals
+   dropped on in slightly different tints, then a dry darker touch at the
+   throat. Nothing is outlined. Edges are feathered by drawing the same shape
+   two or three times at widening scale and falling alpha, which is what keeps
+   it from reading as vector art. */
+
+// one soft petal, base at the origin, pointing up
+function petal(x, len, wid, tint, core, soft){
+  const g = x.createLinearGradient(0, 0, 0, -len);
+  g.addColorStop(0,    core);
+  g.addColorStop(0.42, tint);
+  g.addColorStop(0.88, hexa(tint, 0.55));
+  g.addColorStop(1,    hexa(tint, 0));
+  x.fillStyle = g;
+  // Broad and round-tipped. Narrow petals turn the whole head into a star the
+  // moment it is drawn small, which is most of the curtain.
   x.beginPath();
-  if (shape === SHAPE_CIRCLE){ x.arc(0, 0, w/2, 0, Math.PI*2); x.closePath(); return; }
-  if (shape === SHAPE_DIAMOND){
-    const s = Math.min(h*0.3, w*1.15);
-    x.moveTo(0, -h/2);
-    x.lineTo(w/2, -h/2 + s); x.lineTo(w/2, h/2 - s);
-    x.lineTo(0, h/2);
-    x.lineTo(-w/2, h/2 - s); x.lineTo(-w/2, -h/2 + s);
-    x.closePath(); return;
-  }
-  const r = w/2;
-  x.moveTo(-r, -h/2 + r);
-  x.arc(0, -h/2 + r, r, Math.PI, 0);
-  x.lineTo(r, h/2 - r);
-  x.arc(0, h/2 - r, r, 0, Math.PI);
+  x.moveTo(0, len*0.10);
+  x.bezierCurveTo( wid*1.05, -len*0.16,  wid*0.98, -len*0.80, 0, -len);
+  x.bezierCurveTo(-wid*0.98, -len*0.80, -wid*1.05, -len*0.16, 0, len*0.10);
   x.closePath();
+  x.fill();
+  if (soft > 0){                       // a wetter edge, bleeding outward
+    x.save();
+    x.globalAlpha = 0.30 * soft;
+    x.scale(1 + 0.16*soft, 1 + 0.10*soft);
+    x.fill();
+    x.restore();
+  }
 }
 
 /* ---------- sprite cache ---------- */
 const SCALES = [0.6, 0.9, 1.3, 1.8, 2.4, 3.2];
 const cache = new Map();
 
-function makeSprite(L, shape, st, bright, s){
-  const h = L, w = W, pad = Math.ceil(PAD_W * s);
-  const cw = Math.ceil(w*s) + pad*2, ch = Math.ceil(h*s) + pad*2;
+function makeSprite(D, kind, st, bright, s){
+  const pad = Math.ceil(PAD_W * s);
+  const cw = Math.ceil(D*s) + pad*2, ch = cw;
   const c = document.createElement('canvas');
   c.width = cw; c.height = ch;
   const x = c.getContext('2d');
@@ -447,141 +491,98 @@ function makeSprite(L, shape, st, bright, s){
   const alpha = st.alpha === undefined ? 1 : st.alpha;
   const k = BRIGHT[bright];
   const base = sh(st.g.base, k);
-  const tint = sh(st.g.tint, k*0.6);
-  const caus = sh(st.g.caustic, k*0.6);
-  const deep = st.g.deep;
-  const gl = st.gloss === undefined ? 0.3 : st.gloss;
+  const tint = sh(st.g.tint, k*0.5);
+  const core = st.g.deep;
+  const warm = sh(st.g.caustic, k*0.5);
+  const soft = st.soft;                       // clarity -> how wet the edge is
+  const r = D/2;
 
-  // The shadow this bead throws, plus a paper-coloured backing. The backing is
-  // what a thin bead washes out against, so low specificity reads as pale
-  // rather than dark — the right direction on a light ground.
-  x.save();
-  x.shadowColor = 'rgba(74,57,34,' + (0.30*alpha + 0.08) + ')';
-  x.shadowBlur = 5; x.shadowOffsetX = 1.4; x.shadowOffsetY = 2.2;
-  x.fillStyle = 'rgba(247,242,232,0.94)';
-  shapePath(x, w, h, shape); x.fill();
-  x.restore();
-
-  x.save();
   x.globalAlpha = alpha;
-  shapePath(x, w, h, shape); x.clip();
 
-  // Body. A round bar of glass lit from the upper left: the edges are dense and
-  // dark because you are looking through the most material there, the middle is
-  // where light gets through, and the far edge picks the light back up.
-  const g = x.createLinearGradient(-w/2, 0, w/2, 0);
-  g.addColorStop(0.00, mix(deep, tint, 0.30));
-  g.addColorStop(0.08, deep);
-  g.addColorStop(0.22, mix(base, tint, 0.50));
-  g.addColorStop(0.40, base);
-  g.addColorStop(0.62, mix(base, deep, 0.34));
-  g.addColorStop(0.85, deep);
-  g.addColorStop(1.00, mix(deep, tint, 0.42));
-  x.fillStyle = g;
-  x.fillRect(-w/2, -h/2, w, h);
+  // the wash the flower sits in — a soft bloom of colour, no edge at all
+  const wash = x.createRadialGradient(0, 0, 0, 0, 0, r*1.08);
+  wash.addColorStop(0,    hexa(warm, 0.46));
+  wash.addColorStop(0.46, hexa(base, 0.30));
+  wash.addColorStop(0.82, hexa(base, 0.12));
+  wash.addColorStop(1,    hexa(base, 0));
+  x.fillStyle = wash;
+  x.beginPath(); x.arc(0, 0, r*1.08, 0, Math.PI*2); x.fill();
 
-  // The caustic: light that passed through the glass and pooled inside it,
-  // offset down and away from the key light.
-  const ccx = w*0.17, ccy = h*0.13, ccr = Math.max(w*0.66, h*0.27);
-  const cg = x.createRadialGradient(ccx, ccy, 0, ccx, ccy, ccr);
-  cg.addColorStop(0.00, hexa(caus, 0.46 + gl*0.26));
-  cg.addColorStop(0.45, hexa(caus, 0.15 + gl*0.10));
-  cg.addColorStop(1.00, hexa(caus, 0));
-  x.fillStyle = cg;
-  x.fillRect(-w/2, -h/2, w, h);
+  // petals. Count carries bundling, rings carry how open the flower is.
+  const n = st.petals;
+  const rings = kind === KIND_BUD ? 1 : kind === KIND_DOUBLE ? 3 : 2;
+  const seed = D*3.7 + n*1.9 + kind*5.3;
+  for (let ring = rings - 1; ring >= 0; ring--){
+    const f = rings === 1 ? 1 : 0.52 + 0.48 * (ring / (rings - 1));
+    const len = r * f * (kind === KIND_BUD ? 0.82 : 1);
+    const wid = len * (0.52 + 0.16 * (1 - f));
+    const spin = ring * (Math.PI / n) + rnd(seed + ring) * 0.5;
+    for (let p = 0; p < n; p++){
+      const jitter = (rnd(seed + ring*13 + p*2.1) - 0.5);
+      const pl = len * (0.88 + jitter*0.20);
+      x.save();
+      x.rotate(spin + p * (Math.PI*2/n) + jitter * 0.22);
+      // A darker petal laid down slightly wider first. It only shows in the
+      // gaps between the petals on top, which is what separates them — without
+      // it the head fills in and reads as one soft disc.
+      x.globalAlpha = alpha * 0.5;
+      petal(x, pl*0.97, wid*1.16, mix(core, base, 0.34), core, soft*0.5);
+      x.globalAlpha = alpha;
+      // each petal a slightly different mix, the way pigment never repeats
+      const t = 0.26 + jitter*0.22 + ring*0.12;
+      petal(x, pl, wid, mix(base, tint, Math.max(0, Math.min(1, t))),
+            mix(core, base, 0.55), soft);
+      x.restore();
+    }
+  }
 
-  // Ends go dark — more glass to see through end-on, and the drill hole is there.
-  const es = Math.min(0.3, w/h*0.62);
-  const vg = x.createLinearGradient(0, -h/2, 0, h/2);
-  vg.addColorStop(0, 'rgba(0,0,0,0.58)');
-  vg.addColorStop(es, 'rgba(0,0,0,0)');
-  vg.addColorStop(1-es, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,0.64)');
-  x.fillStyle = vg;
-  x.fillRect(-w/2, -h/2, w, h);
+  // throat: a dry, darker touch where the petals meet
+  const th = x.createRadialGradient(0, 0, 0, 0, 0, r*0.42);
+  th.addColorStop(0,   hexa(mix(core, warm, 0.52), 0.92));
+  th.addColorStop(0.45, hexa(mix(core, base, 0.42), 0.62));
+  th.addColorStop(1,   hexa(core, 0));
+  x.fillStyle = th;
+  x.beginPath(); x.arc(0, 0, r*0.42, 0, Math.PI*2); x.fill();
 
-  // The specular — the hard little window of reflected sky. This is the one
-  // mark that reads unmistakably as glass, so clarity drives its size and bite:
-  // tight and bright on a polished bead, smeared and dull on a pitted one.
-  if (gl > 0.02){
-    const hx = -w*0.22, hy = -h/2 + Math.max(w*0.62, h*0.18);
-    const bloom = x.createRadialGradient(hx, hy, 0, hx, hy, Math.max(w*0.52, h*0.17));
-    bloom.addColorStop(0, 'rgba(255,255,255,' + (0.09 + gl*0.32) + ')');
-    bloom.addColorStop(1, 'rgba(255,255,255,0)');
-    x.fillStyle = bloom;
-    x.fillRect(-w/2, -h/2, w, h);
-
-    const hw = w*0.075 * (1 + (1-gl)*1.6);
-    const hh = Math.min(h*0.085, w*0.26) * (1 + (1-gl)*0.9);
-    x.fillStyle = 'rgba(255,255,255,' + (0.22 + gl*0.52) + ')';
-    x.beginPath(); x.ellipse(hx, hy, hw, hh, -0.1, 0, Math.PI*2); x.fill();
-
-    // a second, weaker window low on the opposite face
-    if (gl > 0.4){
-      x.fillStyle = 'rgba(255,255,255,' + (gl*0.18) + ')';
-      x.beginPath();
-      x.ellipse(w*0.21, h/2 - Math.max(w*0.62, h*0.2), w*0.065, Math.min(h*0.075, w*0.2), 0.2, 0, Math.PI*2);
+  // a few stamens on anything properly open
+  if (kind === KIND_FULL || kind === KIND_DOUBLE){
+    x.fillStyle = hexa(sh(st.g.tint, 0.3), 0.55);
+    for (let i = 0; i < 7; i++){
+      const a2 = rnd(seed + i*3.3) * Math.PI*2, rr = r*0.16 + rnd(seed + i*7.1)*r*0.14;
+      x.beginPath(); x.arc(Math.cos(a2)*rr, Math.sin(a2)*rr, Math.max(0.35, r*0.045), 0, Math.PI*2);
       x.fill();
     }
   }
 
-  if (st.speckle){
-    x.fillStyle = 'rgba(0,0,0,0.3)';
-    for (let i = 0; i < 9; i++){
-      const px = (rnd(i*3.1 + 0.7) - 0.5) * w * 0.74;
-      const py = (rnd(i*5.9 + 2.3) - 0.5) * h * 0.82;
-      x.beginPath(); x.arc(px, py, 0.42 + rnd(i*7.3)*0.3, 0, Math.PI*2); x.fill();
-    }
+  // light from the upper left, as a wash rather than a specular
+  const lit = x.createRadialGradient(-r*0.34, -r*0.36, 0, -r*0.34, -r*0.36, r*1.05);
+  lit.addColorStop(0, 'rgba(255,250,236,' + (0.16 + 0.22*st.lit) + ')');
+  lit.addColorStop(1, 'rgba(255,250,236,0)');
+  x.fillStyle = lit;
+  x.beginPath(); x.arc(0, 0, r*1.08, 0, Math.PI*2); x.fill();
+
+  // groundedness: a leaf tucked behind, or a gold bud at the shoulder
+  if (st.leaf){
+    x.save();
+    x.rotate(2.25);
+    const lg = x.createLinearGradient(0, 0, 0, -r*1.15);
+    lg.addColorStop(0, 'rgba(96,120,66,0.0)');
+    lg.addColorStop(0.5, 'rgba(104,132,72,0.62)');
+    lg.addColorStop(1, 'rgba(142,166,96,0)');
+    x.fillStyle = lg;
+    x.beginPath();
+    x.moveTo(0, 0);
+    x.bezierCurveTo(r*0.34, -r*0.42, r*0.26, -r*0.95, 0, -r*1.15);
+    x.bezierCurveTo(-r*0.26, -r*0.95, -r*0.34, -r*0.42, 0, 0);
+    x.closePath(); x.fill();
+    x.restore();
   }
-
-  if (st.facets){
-    const n = st.facets;
-    for (let i = 1; i <= n; i++){
-      const fy = -h/2 + (h * i) / (n + 1);
-      x.strokeStyle = 'rgba(255,255,255,0.14)'; x.lineWidth = 0.5;
-      x.beginPath(); x.moveTo(-w/2, fy); x.lineTo(w/2, fy); x.stroke();
-      x.strokeStyle = 'rgba(0,0,0,0.26)'; x.lineWidth = 0.5;
-      x.beginPath(); x.moveTo(-w/2, fy + 0.6); x.lineTo(w/2, fy + 0.6); x.stroke();
-    }
+  if (st.bud){
+    x.fillStyle = 'rgba(214,168,74,0.72)';
+    x.beginPath(); x.ellipse(r*0.62, -r*0.52, r*0.17, r*0.24, 0.6, 0, Math.PI*2); x.fill();
+    x.fillStyle = 'rgba(255,232,170,0.5)';
+    x.beginPath(); x.ellipse(r*0.58, -r*0.57, r*0.09, r*0.13, 0.6, 0, Math.PI*2); x.fill();
   }
-
-  if (st.band){
-    const bh = Math.max(2.2, h*0.08);
-    const bg = x.createLinearGradient(-w/2, 0, w/2, 0);
-    bg.addColorStop(0, 'rgba(120,88,20,0.9)');
-    bg.addColorStop(0.3, 'rgba(250,210,130,0.95)');
-    bg.addColorStop(0.65, 'rgba(198,146,46,0.9)');
-    bg.addColorStop(1, 'rgba(96,68,14,0.9)');
-    x.fillStyle = bg;
-    x.fillRect(-w/2, -bh/2, w, bh);
-  }
-
-  if (st.fleck){
-    const fx = w*0.1, fy = -h/2 + Math.max(w*0.75, h*0.3);
-    x.fillStyle = 'rgba(255,252,240,0.95)';
-    x.beginPath(); x.arc(fx, fy, Math.max(0.9, w*0.085), 0, Math.PI*2); x.fill();
-    x.fillStyle = 'rgba(255,252,240,0.3)';
-    x.beginPath(); x.arc(fx, fy, Math.max(1.8, w*0.16), 0, Math.PI*2); x.fill();
-  }
-
-  x.restore();
-
-  // Rim. A dark contact edge keeps the silhouette crisp against the bead
-  // behind it; the bright gradient on top is the light grazing round the
-  // curve, which is what gives the bead its roundness.
-  x.save();
-  x.globalAlpha = alpha;
-  x.strokeStyle = 'rgba(0,0,0,0.38)'; x.lineWidth = 0.55;
-  shapePath(x, w, h, shape); x.stroke();
-
-  x.globalAlpha = alpha * (0.28 + gl*0.38);
-  const rl = x.createLinearGradient(-w/2, -h/2, w/2, h/2);
-  rl.addColorStop(0.00, hexa(tint, 0.62));
-  rl.addColorStop(0.40, hexa(tint, 0.06));
-  rl.addColorStop(1.00, hexa(tint, 0.42));
-  x.strokeStyle = rl; x.lineWidth = 0.6;
-  shapePath(x, w, h, shape); x.stroke();
-  x.restore();
 
   return { c: c, ww: cw/s, wh: ch/s };
 }
@@ -589,11 +590,11 @@ function makeSprite(L, shape, st, bright, s){
 function getSprite(b, s){
   const st = beadStyle(b);
   const lb = Math.round(b.L / 1.5);
-  const key = st.vk + '|' + b.shape + '|' + lb + '|' + b.bright + '|' + s;
+  const key = st.vk + '|' + b.kind + '|' + lb + '|' + b.bright + '|' + s;
   let sp = cache.get(key);
   if (!sp){
     if (cache.size > 4000) cache.clear();
-    sp = makeSprite(lb * 1.5, b.shape, st, b.bright, s);
+    sp = makeSprite(lb * 1.5, b.kind, st, b.bright, s);
     cache.set(key, sp);
   }
   return sp;
@@ -641,7 +642,17 @@ function pickScale(){
 /* ---------- strand geometry ---------- */
 function angAt(st, depth){
   const f = st.len > 0 ? depth/st.len : 0;
-  return st.a * (0.3 + 0.7*f);
+  return st.lean + st.a * (0.3 + 0.7*f);
+}
+
+// One place that knows where a bead is. Drawing, hit testing and the camera all
+// read from here, so the jitter cannot drift between what is shown and what is
+// clickable.
+function beadWorld(b){
+  const st = b.strand, a = angAt(st, b.depth);
+  return { x: st.x + Math.sin(a)*b.depth + b.jx,
+           y: st.top + Math.cos(a)*b.depth,
+           a: a };
 }
 
 /* ---------- draw ---------- */
@@ -707,10 +718,10 @@ function render(t){
         stoneB = w2y(DOOR.floorY);
   if (stoneR > 0 && stoneL < cvw && stoneB > 0 && stoneT < cvh){
     const stone = ctx.createLinearGradient(stoneL, stoneT, stoneR, stoneB);
-    stone.addColorStop(0,    '#e3d6bd');
-    stone.addColorStop(0.34, '#d8c8aa');
-    stone.addColorStop(0.68, '#cbb897');
-    stone.addColorStop(1,    '#bda987');
+    stone.addColorStop(0,    '#e7dcc6');
+    stone.addColorStop(0.34, '#dfd2b8');
+    stone.addColorStop(0.68, '#d4c5a8');
+    stone.addColorStop(1,    '#c7b698');
     ctx.fillStyle = stone;
     ctx.fillRect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
 
@@ -780,8 +791,8 @@ function render(t){
     }
 
     // outer edge of the whole surround
-    ctx.strokeStyle = 'rgba(104,82,50,0.45)';
-    ctx.lineWidth = Math.max(0.8, 2.4*z);
+    ctx.strokeStyle = 'rgba(118,96,62,0.22)';
+    ctx.lineWidth = Math.max(0.8, 2*z);
     ctx.strokeRect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
   }
 
@@ -860,10 +871,8 @@ function render(t){
   const s = far ? 0 : pickScale();
 
   for (const b of beads){
-    const st = b.strand;
-    const a = angAt(st, b.depth);
-    const wx = st.x + Math.sin(a)*b.depth, wy = st.top + Math.cos(a)*b.depth;
-    const sx = w2x(wx), sy = w2y(wy);
+    const P = beadWorld(b), a = P.a;
+    const sx = w2x(P.x), sy = w2y(P.y);
     if (sx < -padX || sx > cvw + padX || sy < -padY || sy > cvh + padY) continue;
     const rot = a + b.tilt;
 
@@ -871,7 +880,7 @@ function render(t){
       const stl = beadStyle(b);
       ctx.globalAlpha = stl.alpha === undefined ? 1 : stl.alpha;
       ctx.fillStyle = sh(stl.g.base, BRIGHT[b.bright]);
-      const dw = Math.max(1, W*z), dh = Math.max(1, b.L*z);
+      const dw = Math.max(1, b.L*z), dh = dw;
       ctx.fillRect(sx - dw/2, sy - dh/2, dw, dh);
       ctx.globalAlpha = 1;
       continue;
@@ -892,15 +901,14 @@ function render(t){
   if (!far) drawCords(Math.max(0.4, 0.7*z), 'rgba(58,45,30,0.11)');
 
   if (sel){
-    const st = sel.strand;
-    const a = angAt(st, sel.depth);
-    const sx = w2x(st.x + Math.sin(a)*sel.depth), sy = w2y(st.top + Math.cos(a)*sel.depth);
+    const P = beadWorld(sel), a = P.a;
+    const sx = w2x(P.x), sy = w2y(P.y);
     ctx.save(); ctx.translate(sx, sy); ctx.rotate(a + sel.tilt);
     ctx.strokeStyle = 'rgba(40,30,18,0.85)';
     ctx.lineWidth = Math.max(1, 1.6*Math.min(z,2));
     const m = 3.5;
     ctx.beginPath();
-    ctx.ellipse(0, 0, (W/2+m)*z, (sel.L/2+m)*z, 0, 0, Math.PI*2);
+    ctx.ellipse(0, 0, (sel.L/2+m)*z, (sel.L/2+m)*z, 0, 0, Math.PI*2);
     ctx.stroke();
     ctx.restore();
   }
@@ -928,14 +936,14 @@ function render(t){
 
   // dark timber frame, lining the opening itself
   const tim = ctx.createLinearGradient(l - ww, 0, rgt + ww, 0);
-  tim.addColorStop(0,    '#24150a');
-  tim.addColorStop(0.17, '#7a5230');
-  tim.addColorStop(0.33, '#3f2614');
-  tim.addColorStop(0.58, '#6b4526');
-  tim.addColorStop(0.74, '#35200f');
-  tim.addColorStop(0.92, '#7d5531');
-  tim.addColorStop(1,    '#1f1208');
-  ctx.strokeStyle = 'rgba(22,13,6,0.55)';
+  tim.addColorStop(0,    '#3b2617');
+  tim.addColorStop(0.17, '#8a6340');
+  tim.addColorStop(0.33, '#56381f');
+  tim.addColorStop(0.58, '#7b5531');
+  tim.addColorStop(0.74, '#4a301b');
+  tim.addColorStop(0.92, '#8b663f');
+  tim.addColorStop(1,    '#35210f');
+  ctx.strokeStyle = 'rgba(46,30,16,0.34)';
   ctx.lineWidth = ww + Math.max(1.2, 3*z);
   openingPath(); ctx.stroke();
   ctx.strokeStyle = tim;
@@ -946,9 +954,27 @@ function render(t){
   ctx.strokeStyle = 'rgba(214,166,108,0.34)';
   ctx.lineWidth = Math.max(0.6, 2.2*z);
   openingPath(DOOR.wood*0.45); ctx.stroke();
-  ctx.strokeStyle = 'rgba(18,10,4,0.5)';
+  ctx.strokeStyle = 'rgba(42,26,12,0.30)';
   ctx.lineWidth = Math.max(0.5, 1.4*z);
   openingPath(DOOR.wood*0.96); ctx.stroke();
+
+  // grain in the timber: a few strokes running just off the frame line
+  ctx.globalAlpha = 0.16;
+  for (let i = 0; i < 4; i++){
+    ctx.strokeStyle = i % 2 ? 'rgba(252,222,180,0.9)' : 'rgba(40,24,10,0.9)';
+    ctx.lineWidth = Math.max(0.4, (0.7 + i*0.25)*z);
+    openingPath(DOOR.wood * (-0.55 + i*0.42)); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // ---- the tooth of the paper, over everything ----
+  if (!grainFill) grainFill = ctx.createPattern(GRAIN, 'repeat');
+  ctx.save();
+  ctx.globalCompositeOperation = 'soft-light';
+  ctx.globalAlpha = 0.45;
+  ctx.fillStyle = grainFill;
+  ctx.fillRect(0, 0, cvw, cvh);
   ctx.restore();
 }
 
@@ -1077,15 +1103,13 @@ function hitTest(sx, sy){
   const tol = 5/cam.z;
   let best = null, bestD = Infinity;
   for (const b of beads){
-    const st = b.strand;
-    const a = angAt(st, b.depth);
-    const wx = st.x + Math.sin(a)*b.depth, wy = st.top + Math.cos(a)*b.depth;
-    const px = w2sx(wx), py = w2sy(wy);
+    const P = beadWorld(b), a = P.a;
+    const px = w2sx(P.x), py = w2sy(P.y);
     const ddx = (sx - px)/cam.z, ddy = (sy - py)/cam.z;
     const r = -(a + b.tilt);
     const lx = ddx*Math.cos(r) - ddy*Math.sin(r);
     const ly = ddx*Math.sin(r) + ddy*Math.cos(r);
-    const ax = Math.abs(lx) - (W/2 + tol), ay = Math.abs(ly) - (b.L/2 + tol);
+    const ax = Math.abs(lx) - (b.L/2 + tol), ay = Math.abs(ly) - (b.L/2 + tol);
     if (ax <= 0 && ay <= 0){
       const d = Math.max(ax, ay);
       if (d < bestD){ bestD = d; best = b; }
@@ -1161,12 +1185,12 @@ function showPanel(b){
 
   const mo = parseInt(b.ts.slice(0,2),10), da = parseInt(b.ts.slice(3,5),10);
   document.getElementById('sType').textContent = LEGEND.specificity[b.spec];
-  document.getElementById('sTitle').textContent = 'Bead ' + nf.format(b.id + 1);
+  document.getElementById('sTitle').textContent = 'Flower ' + nf.format(b.id + 1);
   document.getElementById('sDesc').textContent = SPEC_NOTE[b.spec];
   document.getElementById('sMeta').textContent =
     da + ' ' + MONTHS[mo-1] + ' 2026, ' + b.ts.slice(6) +
-    ' · strand ' + (b.sid+1) + ' of ' + nStrands +
-    ' · bead ' + (b.ord+1) + ' of ' + b.slen;
+    ' · garland ' + (b.sid+1) + ' of ' + nStrands +
+    ' · flower ' + (b.ord+1) + ' of ' + b.slen;
 
   document.getElementById('sBars').innerHTML =
     barRow('Specificity', LEGEND.specificity[b.spec], 1 - b.spec/3) +
@@ -1180,7 +1204,7 @@ function showPanel(b){
     plainRow('Session position', LEGEND.fatigue[b.fatIdx]) +
     plainRow('Time of day', LEGEND.hour[b.hour]) +
     plainRow('Pause before', fmtGap(b.gap)) +
-    plainRow('Shape', SHAPE_NAMES[b.shape]);
+    plainRow("Form", KIND_NAMES[b.kind]);
 
   document.getElementById('sPos').textContent = nf.format(b.id+1) + ' / ' + nf.format(beads.length);
   document.getElementById('sPrev').disabled = b.id === 0;
@@ -1198,8 +1222,8 @@ document.getElementById('sNext').onclick = () => step(1);
 
 // keep a stepped-to bead on screen without yanking the zoom around
 function frameBead(b){
-  const st = b.strand, a = angAt(st, b.depth);
-  const wx = st.x + Math.sin(a)*b.depth, wy = st.top + Math.cos(a)*b.depth;
+  const P = beadWorld(b);
+  const wx = P.x, wy = P.y;
   const m = 60;
   const sx = w2sx(wx), sy = w2sy(wy);
   if (sx < m || sx > cvw-m || sy < m || sy > cvh-m){ cam.x = wx; cam.y = wy; clampCam(); }
@@ -1262,29 +1286,64 @@ function buildLegend(){
   document.getElementById('mCount').textContent =
     nf.format(beads.length) + ' prompts · ' + nStrands + ' sessions';
 
-  legendEl.innerHTML = '';
-  LEGEND.phase.forEach((lab, i) => {
-    const d = document.createElement('div'); d.className = 'lg';
-    const st = beadStyle({ phase:i, clarity:0, spec:0, ground:0, bundle:0 });
-    const sp = makeSprite(30, SHAPE_PILL, st, 1, 3.2);
+  // One painted swatch per entry, drawn with the same renderer as the curtain
+  // so the key cannot drift from what is actually on screen.
+  function swatch(bead, px){
+    const st = beadStyle(bead);
+    const sp = makeSprite(bead.D, bead.kind, st, 1, 3.2);
     const c = document.createElement('canvas');
-    c.width = 38; c.height = Math.round(38 * sp.c.height / sp.c.width);
-    const g = c.getContext('2d');
-    g.drawImage(sp.c, 0, 0, c.width, c.height);
-    d.appendChild(c);
-    const s = document.createElement('span'); s.textContent = lab;
-    d.appendChild(s);
-    const n = document.createElement('span'); n.className = 'n';
-    n.textContent = nf.format(counts[i]);
-    d.appendChild(n);
-    legendEl.appendChild(d);
-  });
+    c.width = px; c.height = px;
+    c.getContext('2d').drawImage(sp.c, 0, 0, px, px);
+    return c;
+  }
+  function item(bead, name, note, px){
+    const d = document.createElement('div'); d.className = 'lg';
+    d.appendChild(swatch(bead, px || 34));
+    const t = document.createElement('span'); t.className = 'lgt';
+    t.innerHTML = '<b>' + name + '</b>' + (note ? '<i>' + note + '</i>' : '');
+    d.appendChild(t);
+    return d;
+  }
+  function group(title, nodes){
+    const g = document.createElement('div'); g.className = 'kgrp';
+    const h = document.createElement('span'); h.className = 'lbl'; h.textContent = title;
+    g.appendChild(h);
+    const row = document.createElement('div'); row.className = 'krow';
+    nodes.forEach(n => row.appendChild(n));
+    g.appendChild(row);
+    return g;
+  }
+
+  const plain = { phase:0, clarity:0, spec:0, ground:0, bundle:0, D:30, kind:KIND_FULL };
+  legendEl.innerHTML = '';
+
+  // which flower — colour carries the phase
+  legendEl.appendChild(group('Which flower · phase of the work',
+    LEGEND.phase.map((lab, i) =>
+      item(Object.assign({}, plain, { phase:i }), lab, nf.format(counts[i])))));
+
+  // how open — size and form carry the word count
+  const forms = [[KIND_BUD,'5 words or fewer'], [KIND_SMALL,'6–15'],
+                 [KIND_FULL,'16–40'], [KIND_DOUBLE,'41 or more']];
+  legendEl.appendChild(group('How open · length of the prompt',
+    forms.map(([k, note], i) =>
+      item(Object.assign({}, plain, { kind:k, D:[16,22,28,31][i] }), KIND_NAMES[k], note))));
+
+  // petal count — how many things were asked for at once
+  legendEl.appendChild(group('Petals · how many asks',
+    LEGEND.bundling.map((lab, i) =>
+      item(Object.assign({}, plain, { bundle:i }), lab, [5,8,12][i] + ' petals'))));
+
+  // the marks that only some flowers carry
+  legendEl.appendChild(group('Marks',
+    [ item(Object.assign({}, plain, { ground:1 }), 'Leaf', 'points at an image'),
+      item(Object.assign({}, plain, { ground:2 }), 'Gold bud', 'compares to something'),
+      item(Object.assign({}, plain, { spec:3 }), 'Washed out', 'a vague prompt'),
+      item(Object.assign({}, plain, { clarity:2 }), 'Bled edge', 'heavy typos') ]));
 
   document.getElementById('subkey').innerHTML =
-    [['Polish', 'clarity'], ['Density', 'specificity'],
-     ['Fleck / gold band', 'grounding'], ['Facets', 'bundling'],
-     ['Length &amp; shape', 'word count'], ['Spacing', 'pause before']]
-    .map(r => '<span><b>' + r[0] + '</b> ' + r[1] + '</span>').join('');
+    '<span><b>Spacing down a garland</b> the real pause before that prompt</span>' +
+    '<span><b>Each garland</b> one session, left to right in order</span>';
 }
 
 document.getElementById('zIn').onclick = () => { unlock(); cam.z = Math.min(Z_MAX, cam.z*1.6); clampCam(); draw(); };

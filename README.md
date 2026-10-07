@@ -1,12 +1,15 @@
-# Bead curtain
+# Garland curtain
 
-An interactive piece where every bead is one prompt, hung as a bead curtain in a lit
-doorway. 2,297 prompts across 57 sessions, 10 Jun 2026 – 5 Oct 2026.
+An interactive piece where every flower is one prompt, hung as painted garlands in a
+carved doorway. 2,297 prompts across 57 sessions, 10 Jun 2026 – 5 Oct 2026.
 
 The labelled data holds 2,404 prompts across 78 sessions. Sessions of fewer than ten
 prompts are not drawn: 21 of them, 107 prompts, 4.5% of the total. They hung as stubs of
-one to nine beads and read as fraying rather than as sessions, and each still took a full
-strand's width. `MIN_BEADS` in `index.html` is the threshold.
+one to nine flowers and read as fraying rather than as sessions, and each still took a
+full garland's width. `MIN_BEADS` in `index.html` is the threshold.
+
+Nothing here is a photograph or a texture file. Every flower, and the stone and timber
+around them, is drawn procedurally into a canvas each frame.
 
 ## Files
 
@@ -16,54 +19,69 @@ strand's width. `MIN_BEADS` in `index.html` is the threshold.
 | `public/data/beads.json` | yes | The labelled data as a separate artifact. Labels, numbers and timestamps only. |
 | `private/labeled_prompts_full.json` | **no** | Same records **with the prompt text**. Working file, git-ignored. |
 
-`index.html` has the bead data inlined so it works from `file://`, offline, and when
+`index.html` has the data inlined so it works from `file://`, offline, and when
 emailed as one attachment. That inlined copy is identical to `beads.json` — no prompt text.
 
 ## Fixed structure
 
-- One bead = one prompt. One strand = one session, top to bottom in the order typed.
-- Strands run left to right in session order.
-- Every bead is the **same width**. Only length changes, and shape follows length tier:
+- One flower = one prompt. One garland = one session, top to bottom in the order typed.
+- Garlands run left to right in session order.
+- A flower is round, so one number is both its width and its height. Word count reads as
+  how open the head is:
 
-  | Words | Shape |
+  | Words | Form |
   |---|---|
-  | ≤ 5 | circle (seed bead) |
-  | 6–15 | pill (short barrel) |
-  | 16–40 | diamond (faceted) |
-  | 41+ | tube (slender) |
+  | ≤ 5 | bud |
+  | 6–15 | half-open |
+  | 16–40 | full bloom |
+  | 41+ | double bloom |
 
-  Length grows fast then levels off (capped at ~2.1× bead width), so a 1,100-word pasted
-  prompt is a long bead that still fits the screen.
-
-  The vertical scale is deliberately compressed. The floor is set by the seed bead: a
-  ≤5-word prompt is a circle of exactly one bead width, so a 6-word prompt has to be
-  longer than that or the encoding would invert. That floor, times the 98 prompts in the
-  longest session, is what fixes the height of the whole piece.
-- Shape and length are **fixed structure** — they encode word count and nothing else.
+  Size grows fast then levels off, so a 60-word prompt is a full head and a 3-word one a
+  tight bud, without the longest prompt dwarfing everything around it.
+- Form and size are **fixed structure** — they encode word count and nothing else.
 - Vertical spacing is the real pause before that prompt: tight in fast streaks, visible
-  bare string where there was a gap.
+  bare thread where there was a gap.
 - Each strand hangs from the underside of the arch directly above it, not from a straight
   rod, so the top of the curtain is a dome and the outer strands start lower than the
   middle ones. Depths are measured from that per-strand start, so there is no single
   hanging line anywhere in the code.
-- A cord stops at its last bead. Nothing trails below it.
+- A thread stops at its last flower. Nothing trails below it.
 
 ## Encoding
 
-One curtain, no modes. Every bead carries all five visible channels at once, so the
-whole dataset is readable without switching anything. The channels stack because each
-one owns a different property of the glass.
+One curtain, no modes. Every flower carries all five visible channels at once, so the
+whole dataset is readable without switching anything. The channels stack because each one
+owns a different property of the painting.
 
 | Channel | Encoding |
 |---|---|
-| Phase | colour of the glass — blue UI, yellow Setup, scarlet Bugs, magenta UX |
-| Clarity | polish — a tight bright specular (clean), softened (minor typos), dull and pitted (heavy typos) |
-| Specificity | density — solid (specific) → thin and pale (vague) |
-| Groundedness | an inclusion: plain, white fleck (image reference), gold band (comparison reference) |
-| Bundling | facet lines cut across the body — smooth (single ask) → multi-faceted (many asks) |
+| Phase | which flower — cornflower UI, marigold Setup, vermilion Bugs, bougainvillea UX |
+| Clarity | how wet the brush was — a clean prompt holds its edge, a typo-ridden one bleeds into the paper |
+| Specificity | how much pigment — saturated (specific) → washed out (vague) |
+| Groundedness | a mark beside the head: plain, a leaf (image reference), a gold bud (comparison reference) |
+| Bundling | petal count — 5 (single ask), 8 (few asks), 12 (many asks) |
 
 **Decision fatigue** and **hour of day** both wanted colour, which phase already owns.
-They are not drawn on the bead; they appear in the side panel with everything else.
+They are not drawn on the flower; they appear in the side panel with everything else.
+
+The key under the piece shows a painted swatch for every one of these, drawn with the same
+renderer as the curtain itself, so it cannot drift from what is actually on screen.
+
+## How a flower is painted
+
+Nothing is outlined. Each head is laid down the way a brush would:
+
+1. a loose wash of colour, with no edge at all
+2. for each petal, a darker, slightly wider petal first — it only shows in the gaps
+   between the petals on top, and it is what stops the head filling in and reading as one
+   soft disc
+3. the petal itself, every one a slightly different mix, because pigment never repeats
+4. a dry darker touch at the throat, and stamens on anything properly open
+
+Edges are feathered by drawing the same shape again at a widening scale and falling alpha
+— that is the `soft` term, and clarity drives it. Over the whole frame goes a tooth of
+paper grain, composited `soft-light`, which is what stops the gradients beneath reading as
+vector art.
 
 ## The doorway
 
@@ -88,33 +106,30 @@ as texture, and only resolve into flowers when you zoom in. Relief is faked the 
 carver reads it, a shadow cast down-right and a highlight up-left, with the offsets floored
 at about a pixel so it does not flatten out when zoomed away.
 
-The arch has to be solved before the beads, because the strands hang from it: the arch
-comes from the curtain's width, the strand tops from the arch, the bead depths from the
-tops, and only then is the floor placed under the longest strand. Strands hang from the
+The arch has to be solved before the flowers, because the garlands hang from it: the arch
+comes from the curtain's width, the garland tops from the arch, the flower depths from the
+tops, and only then is the floor placed under the longest garland. Garlands hang from the
 *smooth* arch, not the cusped edge — following the scallops would give the top of the
 curtain a saw-tooth that reads as a mistake.
 
-The light matters to the encoding, not just the mood: the beads are backlit, which is what
-the glass renderer was built for. Specificity is drawn as density, and a thin bead against
-a bright opening is exactly what a vague prompt should look like.
-
 ## Interaction
 
-The piece hangs on the left; a reading of one bead sits on the right.
+The piece hangs on the left; a reading of one flower sits on the right.
 
-- **Drag** across the strands — they sway and click softly, and the view pans with you.
+- **Drag** across the garlands — they sway and rustle softly, and the view pans with you.
 - **Pinch** (or scroll wheel) to zoom. Zooming out stops with the whole doorway in frame,
   so it reads as a curtain hanging in an opening rather than a cropped field. Far out
-  reads as a pattern; close up shows single beads lit from behind.
-- **Hover** a bead and the side panel reads it straight away — specificity as the
+  reads as a pattern; close up shows single painted heads.
+- **Hover** a flower and the side panel reads it straight away — specificity as the
   headline, then the analysis, then the context. A small label follows the pointer too.
-- **Click** to pin a bead, so the panel holds it when the pointer moves off. Previous/Next
+- **Click** to pin a flower, so the panel holds it when the pointer moves off. Previous/Next
   walk the whole run in order.
 - **Reset view** returns to the full curtain and clears the selection. **Pause motion**
   freezes the sway; panning, zooming and selection keep working.
 
-Under 860px wide the panel stacks underneath and stays shut until you pick a bead, so it
-does not eat half the piece while empty.
+Under 860px wide the panel stacks underneath and stays shut until you pick a flower, so
+it does not eat half the piece while empty. The piece itself keeps a floor of 190px and the
+key scrolls, so a short window can never squeeze the canvas to nothing.
 
 The analysis bars fill to where a label sits on its own scale, in the direction of the
 thing named — Specificity full is *specific*, Bundling full is *many asks*. The value
