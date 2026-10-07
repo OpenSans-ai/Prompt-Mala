@@ -26,46 +26,51 @@ emailed as one attachment. That inlined copy is identical to `beads.json` — no
 
 - One flower = one prompt. One garland = one session, top to bottom in the order typed.
 - Garlands run left to right in session order.
-- A flower is round, so one number is both its width and its height. Word count reads as
-  how open the head is:
-
-  | Words | Form |
-  |---|---|
-  | ≤ 5 | bud |
-  | 6–15 | half-open |
-  | 16–40 | full bloom |
-  | 41+ | double bloom |
-
-  Size grows fast then levels off, so a 60-word prompt is a full head and a 3-word one a
-  tight bud, without the longest prompt dwarfing everything around it.
-- Form and size are **fixed structure** — they encode word count and nothing else.
 - Vertical spacing is the real pause before that prompt: tight in fast streaks, visible
   bare thread where there was a gap.
-- Each strand hangs from the underside of the arch directly above it, not from a straight
-  rod, so the top of the curtain is a dome and the outer strands start lower than the
-  middle ones. Depths are measured from that per-strand start, so there is no single
+- Each garland hangs from the underside of the arch directly above it, not from a straight
+  rod, so the top of the curtain is a dome and the outer garlands start lower than the
+  middle ones. Depths are measured from that per-garland start, so there is no single
   hanging line anywhere in the code.
 - A thread stops at its last flower. Nothing trails below it.
 
 ## Encoding
 
-One curtain, no modes. Every flower carries all five visible channels at once, so the
-whole dataset is readable without switching anything. The channels stack because each one
-owns a different property of the painting.
+**Two things are drawn, and only two.** Colour says which flower it is. How far open the
+head is says how good the prompt was, as one rolled-up reading.
 
-| Channel | Encoding |
+| Drawn | Encoding |
 |---|---|
-| Phase | which flower — cornflower UI, marigold Setup, vermilion Bugs, bougainvillea UX |
-| Clarity | how wet the brush was — a clean prompt holds its edge, a typo-ridden one bleeds into the paper |
-| Specificity | how much pigment — saturated (specific) → washed out (vague) |
-| Groundedness | a mark beside the head: plain, a leaf (image reference), a gold bud (comparison reference) |
-| Bundling | petal count — 5 (single ask), 8 (few asks), 12 (many asks) |
+| Which flower | phase — cornflower UI, marigold Setup, vermilion Bugs, bougainvillea UX |
+| How open | overall quality — tight bud (rough), half-open (mixed), full bloom (solid), wide open (sharp) |
 
-**Decision fatigue** and **hour of day** both wanted colour, which phase already owns.
-They are not drawn on the flower; they appear in the side panel with everything else.
+Everything else is in the panel on the right and nowhere on the flower.
 
-The key under the piece shows a painted swatch for every one of these, drawn with the same
-renderer as the curtain itself, so it cannot drift from what is actually on screen.
+This is a deliberate retreat. Clarity, specificity, grounding and bundling each used to own
+a visual property — edge bleed, pigment density, a leaf or gold bud, petal count. Five
+things on every head meant that at any zoom where you could see the whole curtain it read
+as noise, and at any zoom where you could read one flower you could not see the curtain.
+Rolling them into one number costs nothing, because the four labels are still printed
+individually a few centimetres to the right.
+
+Openness is a weighted roll-up:
+
+| Label | Weight | Direction |
+|---|---|---|
+| Specificity | 0.40 | specific is better — the strongest single signal of whether a prompt could be acted on alone |
+| Clarity | 0.22 | clean is better |
+| Grounding | 0.18 | anchored is better — pointing at an image or a comparison is evidence, not noise |
+| Bundling | 0.20 | a single ask is better |
+
+Those weights are a judgement, not a measurement. The tiers land at roughly 21 / 30 / 35 /
+14 per cent, which is a spread rather than one bucket swallowing the set — worth
+re-checking if the labels ever change.
+
+**Decision fatigue**, **hour of day** and **word count** are not drawn at all. They are in
+the panel.
+
+The key under the piece shows a painted swatch for each of the eight things that are drawn,
+rendered with the same code as the curtain, so it cannot drift from what is on screen.
 
 ## How a flower is painted
 
@@ -78,10 +83,12 @@ Nothing is outlined. Each head is laid down the way a brush would:
 3. the petal itself, every one a slightly different mix, because pigment never repeats
 4. a dry darker touch at the throat, and stamens on anything properly open
 
-Edges are feathered by drawing the same shape again at a widening scale and falling alpha
-— that is the `soft` term, and clarity drives it. Over the whole frame goes a tooth of
-paper grain, composited `soft-light`, which is what stops the gradients beneath reading as
-vector art.
+Edges are feathered by drawing the same shape again at a widening scale and falling alpha.
+Over the whole frame goes a tooth of paper grain, composited `soft-light`, which is what
+stops the gradients beneath reading as vector art.
+
+Because only the phase varies per flower now, the sprite cache collapsed from about 1,200
+entries to 43 — four flowers times four degrees of openness times the zoom steps.
 
 ## The doorway
 
@@ -117,15 +124,15 @@ curtain a saw-tooth that reads as a mistake.
 The piece hangs on the left; a reading of one flower sits on the right.
 
 - **Drag** across the garlands — they sway and rustle softly, and the view pans with you.
-- **Pinch** (or scroll wheel) to zoom. Zooming out stops with the whole doorway in frame,
-  so it reads as a curtain hanging in an opening rather than a cropped field. Far out
-  reads as a pattern; close up shows single painted heads.
+- **Pinch** (or scroll wheel) to zoom. You land close enough that a single head reads as a
+  painted flower rather than a dot; the long garlands run off the bottom of the frame.
+  Zooming out stops with the whole doorway in view, where it reads as pattern instead.
+  **Reset view** returns to the opening framing, not to the whole doorway.
 - **Hover** a flower and the side panel reads it straight away — specificity as the
   headline, then the analysis, then the context. A small label follows the pointer too.
 - **Click** to pin a flower, so the panel holds it when the pointer moves off. Previous/Next
   walk the whole run in order.
-- **Reset view** returns to the full curtain and clears the selection. **Pause motion**
-  freezes the sway; panning, zooming and selection keep working.
+- **Pause motion** freezes the sway; panning, zooming and selection keep working.
 
 Under 860px wide the panel stacks underneath and stays shut until you pick a flower, so
 it does not eat half the piece while empty. The piece itself keeps a floor of 190px and the

@@ -127,6 +127,10 @@
   .row .v{color:var(--ink); font-weight:530; text-align:right;}
   .note{margin:6px 0 10px; font-size:11px; line-height:1.4; color:var(--ink-3);}
 
+  .brk{margin-top:12px; padding-top:11px; border-top:1px solid var(--rule);}
+  .brk .bar .hd{font-size:11.5px;}
+  .brk .bar .tr{height:4px;}
+
   .caveat{margin-top:14px; font-size:10.5px; line-height:1.45; color:var(--ink-3);}
 </style>
 </head>
@@ -207,19 +211,30 @@
 // them, so each carries its own `top` and depths are measured from them.
 const STRAND_GAP = 27, MARGIN = 30, PAD_W = 9;
 
-// A bloom is round, so one number is both its width and its height — word count
-// now reads as how open the flower is rather than how long a bead is. Growth is
-// fast then levels off, so a 60-word prompt is a full head and a 3-word one is
-// a tight bud without the longest prompt dwarfing the rest.
-const D_MIN = 11, D_MAX = 31, D_K = 17;
+// Two things are drawn, and only two: which flower it is, and how far open.
+// Colour carries the phase. Openness carries one overall reading of the prompt,
+// rolled up from the four labels that say something about its quality. Every
+// one of those labels is still available in full on the right — this is about
+// what the eye has to carry, not about throwing data away.
 const KIND_BUD = 0, KIND_SMALL = 1, KIND_FULL = 2, KIND_DOUBLE = 3;
-const KIND_NAMES = ['bud','half-open','full bloom','double bloom'];
+const KIND_NAMES = ['tight bud','half-open','full bloom','wide open'];
+const QUALITY_NAMES = ['rough','mixed','solid','sharp'];
+const KIND_D = [16, 21, 26, 31];      // a better prompt is a wider head
 
-function bloomSize(wc){ return D_MIN + (D_MAX - D_MIN) * (1 - Math.exp(-wc / D_K)); }
-function bloomKind(wc){ return wc <= 5 ? KIND_BUD : wc <= 15 ? KIND_SMALL : wc <= 40 ? KIND_FULL : KIND_DOUBLE; }
+// Weights: specificity is the strongest single signal of whether a prompt could
+// be acted on alone, so it carries most. Grounding counts upward — pointing at
+// an image or a comparison is evidence, not noise.
+function qualityOf(clarity, spec, ground, bundle){
+  return (1 - spec/3)    * 0.40
+       + (1 - clarity/2) * 0.22
+       + (ground/2)      * 0.18
+       + (1 - bundle/2)  * 0.20;
+}
+function qualityTier(q){ return q < 0.46 ? 0 : q < 0.60 ? 1 : q < 0.74 ? 2 : 3; }
+
 function beadGap(g){ return g < 0 ? 0 : 1.5 + 8 * (1 - Math.exp(-g / 1000)); }
 // widest bloom, for layout and hit testing
-const D_WIDEST = bloomSize(1e4);
+const D_WIDEST = KIND_D[KIND_D.length - 1];
 
 function rnd(seed){ let x = Math.sin(seed * 12.9898) * 43758.5453; return x - Math.floor(x); }
 
@@ -331,7 +346,8 @@ let worldH = 0;
 
   for (let i = 0; i < kept.length; i++) {
     const r = kept[i], sid = COL[r[0]], wc = r[4];
-    const L = bloomSize(wc);
+    const tier = qualityTier(qualityOf(r[6], r[7], r[8], r[9]));
+    const L = KIND_D[tier];
     cursor[sid] += beadGap(r[11]);
     const depth = cursor[sid] + L / 2 - strands[sid].top;
     cursor[sid] += L;
@@ -340,7 +356,7 @@ let worldH = 0;
     beads.push({
       id: i, sid: sid, session: r[0], ord: o, slen: slen[sid], ts: r[3], wc: wc,
       phase: r[5], clarity: r[6], spec: r[7], ground: r[8], bundle: r[9], hour: r[10], gap: r[11],
-      L: L, kind: bloomKind(wc), depth: depth,
+      L: L, kind: tier, q: qualityOf(r[6], r[7], r[8], r[9]), depth: depth,
       fat: t, fatIdx: t < 1 / 3 ? 0 : t < 2 / 3 ? 1 : 2,
       bright: Math.floor(rnd(i * 1.7 + 3) * 3),
       tilt: (rnd(i * 2.3 + 11) - 0.5) * 0.055,
@@ -429,18 +445,17 @@ const BLOOM = [
   { base:'#C04C92', tint:'#F3C9E2', deep:'#67204B', caustic:'#DE8DBE' }, // UX    — bougainvillea
 ];
 
+// Only phase varies here. Clarity, specificity, grounding and bundling each used
+// to own a visual property; between them they put five things on every head and
+// the curtain read as noise at any zoom where you could see the whole thing.
+// They are rolled into how open the flower is, and spelled out one by one on the
+// right. The cache key collapses to the phase as a result.
 function beadStyle(b){
   return {
     g: BLOOM[b.phase],
-    // clarity -> how wet the brush was. A clean prompt holds its edge; a
-    // typo-ridden one bleeds into the paper.
-    soft:    [0, 0.5, 1][b.clarity],
-    lit:     [1, 0.6, 0.25][b.clarity],
-    alpha:   [1, 0.88, 0.7, 0.5][b.spec],
-    petals:  [5, 8, 12][b.bundle],
-    leaf:    b.ground === 1,
-    bud:     b.ground === 2,
-    vk: 'p'+b.phase+'c'+b.clarity+'s'+b.spec+'g'+b.ground+'b'+b.bundle
+    soft: 0.34, lit: 0.8, alpha: 1, petals: 8,
+    leaf: false, bud: false,
+    vk: 'p' + b.phase
   };
 }
 
@@ -623,6 +638,19 @@ function fit(){
   cam.z = minZ; cam.x = VIEW.cx; cam.y = VIEW.cy;
   clampCam(); draw();
 }
+
+// The view you land on. Close enough that a single head is legible as a painted
+// flower rather than a dot — the whole curtain at once was pattern, not
+// flowers. The long garlands run off the bottom of the frame; zooming out to
+// minZ still shows the doorway entire.
+const OPEN_FLOWER_PX = 27;
+function openView(){
+  cam.z = Math.max(minZ, Math.min(Z_MAX, OPEN_FLOWER_PX / D_WIDEST));
+  cam.x = DOOR.cx;
+  // sit the crown of the arch just inside the top edge
+  cam.y = DOOR.topY + (cvh/cam.z) * 0.44;
+  clampCam(); draw();
+}
 function clampCam(){
   const vw = cvw/cam.z, vh = cvh/cam.z;
   if (VIEW.w <= vw) cam.x = VIEW.cx;
@@ -682,6 +710,13 @@ function render(t){
   if (!needs && !moving) return;
   if (dt < 22 && !dragging) return;
   lastT = t; needs = false;
+
+  // Last line of defence on canvas sizing. The ResizeObserver above is the
+  // real mechanism, but it is delivered with the frame loop and a backgrounded
+  // tab suspends both — so any frame that is about to draw re-checks the box
+  // first. Out of sync, the backing store keeps its old height while the
+  // element shrinks, and every flower draws as a squashed ellipse.
+  if (cv.clientWidth !== cvw || cv.clientHeight !== cvh){ resize(); return; }
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
@@ -1179,7 +1214,8 @@ function showPanel(b){
   appEl.classList.toggle('sel', !!b);
   // On the stacked layout the drawer takes height off the canvas, so the
   // backing store has to be re-measured whenever it opens or closes.
-  if (was !== !!b && (cv.clientWidth !== cvw || cv.clientHeight !== cvh)) resize();
+  // The canvas watches its own box (see the ResizeObserver below), so opening
+  // or closing the drawer needs nothing here.
   if (!b){ sEmpty.hidden = false; sBody.hidden = true; return; }
   sEmpty.hidden = true; sBody.hidden = false;
 
@@ -1192,12 +1228,17 @@ function showPanel(b){
     ' · garland ' + (b.sid+1) + ' of ' + nStrands +
     ' · flower ' + (b.ord+1) + ' of ' + b.slen;
 
+  // The flower only shows the first of these. The rest are the detail that used
+  // to be painted onto it and now lives here instead.
   document.getElementById('sBars').innerHTML =
+    barRow('Overall · drawn as openness', QUALITY_NAMES[b.kind] + ' · ' + KIND_NAMES[b.kind], b.q) +
+    '<div class="brk">' +
     barRow('Specificity', LEGEND.specificity[b.spec], 1 - b.spec/3) +
     barRow('Clarity',     LEGEND.clarity[b.clarity],  1 - b.clarity/2) +
     barRow('Grounding',   LEGEND.groundedness[b.ground], b.ground/2) +
     barRow('Bundling',    LEGEND.bundling[b.bundle],  b.bundle/2) +
-    barRow('Length',      b.wc + (b.wc === 1 ? ' word' : ' words'), Math.min(1, b.wc/60));
+    barRow('Length',      b.wc + (b.wc === 1 ? ' word' : ' words'), Math.min(1, b.wc/60)) +
+    '</div>';
 
   document.getElementById('sCtx').innerHTML =
     plainRow('Phase', LEGEND.phase[b.phase], PHASE_NOTE[b.phase]) +
@@ -1314,7 +1355,7 @@ function buildLegend(){
     return g;
   }
 
-  const plain = { phase:0, clarity:0, spec:0, ground:0, bundle:0, D:30, kind:KIND_FULL };
+  const plain = { phase:0, D:KIND_D[KIND_FULL], kind:KIND_FULL };
   legendEl.innerHTML = '';
 
   // which flower — colour carries the phase
@@ -1322,33 +1363,24 @@ function buildLegend(){
     LEGEND.phase.map((lab, i) =>
       item(Object.assign({}, plain, { phase:i }), lab, nf.format(counts[i])))));
 
-  // how open — size and form carry the word count
-  const forms = [[KIND_BUD,'5 words or fewer'], [KIND_SMALL,'6–15'],
-                 [KIND_FULL,'16–40'], [KIND_DOUBLE,'41 or more']];
-  legendEl.appendChild(group('How open · length of the prompt',
-    forms.map(([k, note], i) =>
-      item(Object.assign({}, plain, { kind:k, D:[16,22,28,31][i] }), KIND_NAMES[k], note))));
-
-  // petal count — how many things were asked for at once
-  legendEl.appendChild(group('Petals · how many asks',
-    LEGEND.bundling.map((lab, i) =>
-      item(Object.assign({}, plain, { bundle:i }), lab, [5,8,12][i] + ' petals'))));
-
-  // the marks that only some flowers carry
-  legendEl.appendChild(group('Marks',
-    [ item(Object.assign({}, plain, { ground:1 }), 'Leaf', 'points at an image'),
-      item(Object.assign({}, plain, { ground:2 }), 'Gold bud', 'compares to something'),
-      item(Object.assign({}, plain, { spec:3 }), 'Washed out', 'a vague prompt'),
-      item(Object.assign({}, plain, { clarity:2 }), 'Bled edge', 'heavy typos') ]));
+  // how open — one rolled-up reading of the prompt
+  const tiers = [0,0,0,0];
+  for (const b of beads) tiers[b.kind]++;
+  legendEl.appendChild(group('How open · overall quality of the prompt',
+    KIND_NAMES.map((lab, k) =>
+      item(Object.assign({}, plain, { kind:k, D:KIND_D[k] }),
+           lab, QUALITY_NAMES[k] + ' · ' + nf.format(tiers[k])))));
 
   document.getElementById('subkey').innerHTML =
+    '<span><b>Openness</b> rolls up specificity, clarity, grounding and how many asks' +
+    ' &mdash; each on its own is in the panel</span>' +
     '<span><b>Spacing down a garland</b> the real pause before that prompt</span>' +
     '<span><b>Each garland</b> one session, left to right in order</span>';
 }
 
 document.getElementById('zIn').onclick = () => { unlock(); cam.z = Math.min(Z_MAX, cam.z*1.6); clampCam(); draw(); };
 document.getElementById('zOut').onclick = () => { cam.z = Math.max(minZ, cam.z/1.6); clampCam(); draw(); };
-document.getElementById('tFit').onclick = () => { sel = null; showPanel(null); hideTip(); fit(); };
+document.getElementById('tFit').onclick = () => { sel = null; showPanel(null); hideTip(); openView(); };
 
 const tPause = document.getElementById('tPause');
 tPause.onclick = () => {
@@ -1358,13 +1390,22 @@ tPause.onclick = () => {
   if (!paused){ lastT = 0; draw(); }
 };
 
+// Watch the canvas box itself rather than guessing at the moments it might
+// change. Opening the stacked drawer resizes the stage, and a hand-placed
+// resize() call missed it: the backing store stayed tall while the element
+// went short, and every flower drew as a squashed ellipse.
+if (window.ResizeObserver){
+  new ResizeObserver(() => {
+    if (cv.clientWidth !== cvw || cv.clientHeight !== cvh) resize();
+  }).observe(cv);
+}
 window.addEventListener('resize', resize);
 const hint = document.getElementById('hint');
 setTimeout(() => { hint.style.opacity = '0'; }, 6500);
 
 buildLegend();
 resize();
-fit();
+openView();
 requestAnimationFrame(render);
 </script>
 </body>
