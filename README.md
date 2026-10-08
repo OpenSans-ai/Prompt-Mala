@@ -1,4 +1,4 @@
-# Garland curtain
+# Prompt Mala
 
 An interactive piece where every flower is one prompt, hung as painted garlands in a
 carved doorway. 2,297 prompts across 57 sessions, 10 Jun 2026 – 5 Oct 2026.

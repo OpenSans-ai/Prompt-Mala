@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Garland curtain</title>
+<title>Prompt Mala</title>
 <style>
   :root{
     --paper:#f4efe4;
@@ -139,7 +139,7 @@
 
   <div id="main">
     <header id="mast">
-      <h1>Garland curtain</h1>
+      <h1>Prompt Mala</h1>
       <p class="stand">Every flower is one prompt. Every garland is one session, read top to
         bottom in the order it was typed.</p>
       <div class="dek">
@@ -223,11 +223,15 @@ const QUALITY_NAMES = ['rough','mixed','solid','sharp'];
 // The form of each species no longer changes with it — a marigold is always a
 // marigold, just larger or smaller.
 //
-// These are deliberately wider than STRAND_GAP, so neighbouring garlands
-// overlap and the curtain reads as a thick mass of flowers rather than rows of
-// dots. The whole door has to stay in frame, so this is the only lever on how
-// big a flower looks: cropping the door is not allowed to buy it.
-const KIND_D = [21, 31, 43, 57];
+// These are deliberately far wider than STRAND_GAP — the largest head is about
+// three times the pitch — so neighbouring garlands overlap heavily and the
+// curtain reads as a thick mass of flowers rather than rows of dots.
+//
+// This is also the lever on how much of the doorway fills. A bigger flower makes
+// each garland longer as well as fatter, so the curtain reaches further down the
+// opening. The whole door has to stay in frame, so cropping it is not allowed to
+// buy either.
+const KIND_D = [30, 44, 61, 80];
 
 // Weights: specificity is the strongest single signal of whether a prompt could
 // be acted on alone, so it carries most. Grounding counts upward — pointing at
@@ -324,8 +328,14 @@ const DOORIMG = {
   // Underside of the carved arch, left jamb to right jamb, as fractions of
   // height. The small dip in the middle is the carved bracket hanging off the
   // crown — the garlands pass under it, as they would.
-  soffit: [0.336, 0.295, 0.266, 0.245, 0.231, 0.219, 0.210, 0.206, 0.224,
-           0.206, 0.210, 0.219, 0.231, 0.245, 0.266, 0.295, 0.336]
+  // Measured, not eyeballed. The left shoulder is sunlit, so walking up from
+  // inside the opening the first bright pixel IS the carved soffit; the reading
+  // is stable across thresholds from 92 to 116. The right half is in shadow and
+  // gives nothing, so the lit half is mirrored. An earlier pass guessed these
+  // from a grid and sat up to 123 image pixels too low at the jamb, which is
+  // what left the gap between the carving and the flowers.
+  soffit: [0.2636, 0.2519, 0.2285, 0.2250, 0.2110, 0.2069, 0.1987, 0.1748, 0.2262,
+           0.1748, 0.1987, 0.2069, 0.2110, 0.2250, 0.2285, 0.2519, 0.2636]
 };
 
 doorImg.src = DOORIMG.src;   // DOORIMG has to exist first, hence not up there
@@ -352,13 +362,21 @@ const ARCH = (() => {
 })();
 
 // The soffit in world coordinates, interpolated between the measured samples.
+// Catmull-Rom, not straight lines between the samples. The arch is a curve and
+// it bends hardest at the shoulders: a chord strung between two samples there
+// cuts inside the real carving, and the clip built from those chords left a
+// wedge of bare doorway between the arch and the first flowers.
 function baseArchY(x){
-  const t = (x - ARCH.inL) / (ARCH.inR - ARCH.inL);
-  const n = DOORIMG.soffit.length - 1;
-  const u = Math.max(0, Math.min(1, t)) * n;
+  const t = Math.max(0, Math.min(1, (x - ARCH.inL) / (ARCH.inR - ARCH.inL)));
+  const a = DOORIMG.soffit, n = a.length - 1;
+  const u = t * n;
   const i = Math.min(n - 1, Math.floor(u)), f = u - i;
-  const a = DOORIMG.soffit[i], b = DOORIMG.soffit[i+1];
-  return ARCH.imgT + (a + (b - a) * f) * ARCH.imgH;
+  const p0 = a[Math.max(0, i - 1)], p1 = a[i], p2 = a[i + 1], p3 = a[Math.min(n, i + 2)];
+  const f2 = f*f, f3 = f2*f;
+  const y = 0.5 * ((2*p1) + (-p0 + p2)*f
+                 + (2*p0 - 5*p1 + 4*p2 - p3)*f2
+                 + (-p0 + 3*p1 - 3*p2 + p3)*f3);
+  return ARCH.imgT + y * ARCH.imgH;
 }
 
 // Negative on purpose: the garlands are fixed BEHIND the carving, so each one
@@ -916,13 +934,14 @@ function render(t){
 
   // The opening, traced from the measured soffit: down one jamb, across the
   // bottom of the image, up the other, then back over the arch.
+  // Sampled finely along the curve, not just at the soffit knots. At 17 points
+  // the clip was a coarse polygon and its chords cut inside the carving.
   function openingPath(){
-    const n = DOORIMG.soffit.length - 1;
+    const N = 160;
     ctx.beginPath();
     ctx.moveTo(w2x(ARCH.inL), w2y(DOOR.floorY));
-    ctx.lineTo(w2x(ARCH.inL), w2y(baseArchY(ARCH.inL)));
-    for (let i = 1; i <= n; i++){
-      const xw = ARCH.inL + (ARCH.inR - ARCH.inL) * (i/n);
+    for (let i = 0; i <= N; i++){
+      const xw = ARCH.inL + (ARCH.inR - ARCH.inL) * (i/N);
       ctx.lineTo(w2x(xw), w2y(baseArchY(xw)));
     }
     ctx.lineTo(w2x(ARCH.inR), w2y(DOOR.floorY));
