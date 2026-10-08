@@ -132,7 +132,11 @@ shadow and no brightness threshold separates it from the carving. The arch is sy
 the lit half was traced and mirrored.
 
 Everything else follows from that measurement. `PX` sets how many world units one image
-pixel is worth, chosen so the 57 garlands span the opening with a little air at each jamb.
+pixel is worth, scaled off `CURTAIN_REACH` — the span of the outermost garland centres plus
+the overhang of the widest head. It is deliberately not scaled off `worldW`, which carries a
+margin at each end: that left the garlands seven per cent short of each jamb, and the arch
+went on curving down past the last one with nothing under it, a visible wedge of empty
+doorway at both shoulders.
 The garland tops come from the soffit, so they hang from the painted arch — and `SOFFIT` is
 *negative*. Each garland starts a little above the soffit, so the clip takes the top off its
 first flower and you see the heads emerging from under the carving. Hung level with the

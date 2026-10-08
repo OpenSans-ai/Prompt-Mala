@@ -330,9 +330,14 @@ const DOORIMG = {
 
 doorImg.src = DOORIMG.src;   // DOORIMG has to exist first, hence not up there
 
-// world units per image pixel, set so the curtain spans the opening with a
-// little air at each jamb
-const PX = worldW / ((DOORIMG.r - DOORIMG.l) * DOORIMG.w * 0.93);
+// World units per image pixel. Scaled off the actual reach of the flowers —
+// the outermost garland's centres plus the overhang of the widest head — not
+// off worldW, which carries a margin at each end. At 0.93 of the opening the
+// garlands stopped seven per cent short of each jamb, and the arch went on
+// curving down past the last one with nothing under it: a visible wedge of
+// empty doorway at both shoulders.
+const CURTAIN_REACH = (nStrands - 1) * STRAND_GAP + D_WIDEST;
+const PX = CURTAIN_REACH / ((DOORIMG.r - DOORIMG.l) * DOORIMG.w * 0.985);
 
 const ARCH = (() => {
   const imgW = DOORIMG.w * PX, imgH = DOORIMG.h * PX;
@@ -361,7 +366,7 @@ function baseArchY(x){
 // flower. You see the heads emerging from under the arch rather than hanging on
 // a thread below it, which is the difference between attached and floating.
 // Kept small so even the smallest flower still shows most of itself.
-const SOFFIT = -7;
+const SOFFIT = -4;
 for (const st of strands) st.top = baseArchY(st.x) + SOFFIT;
 
 let worldH = 0;
