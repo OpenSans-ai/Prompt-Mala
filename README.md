@@ -133,7 +133,13 @@ the lit half was traced and mirrored.
 
 Everything else follows from that measurement. `PX` sets how many world units one image
 pixel is worth, chosen so the 57 garlands span the opening with a little air at each jamb.
-The garland tops come from the soffit, so they hang from the painted arch. The opening path
+The garland tops come from the soffit, so they hang from the painted arch — and `SOFFIT` is
+*negative*. Each garland starts a little above the soffit, so the clip takes the top off its
+first flower and you see the heads emerging from under the carving. Hung level with the
+arch, or on a visible cord below it, they read as floating in the doorway rather than fixed
+to it. The offset is kept small so even the smallest flower still shows two thirds of
+itself. The thread is pale for the same reason: a brown thread on a brown doorway is
+invisible, and without a visible thread the flowers look like they are hanging on nothing. The opening path
 — down one jamb, across the bottom of the image, up the other, back over the arch — is the
 clip, so nothing strays onto the carving.
 

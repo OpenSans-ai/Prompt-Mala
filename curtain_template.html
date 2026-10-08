@@ -354,7 +354,12 @@ function baseArchY(x){
   return ARCH.imgT + (a + (b - a) * f) * ARCH.imgH;
 }
 
-const SOFFIT = 14;
+// Negative on purpose: the garlands are fixed BEHIND the carving, so each one
+// starts a little above the soffit and the clip takes the top off the first
+// flower. You see the heads emerging from under the arch rather than hanging on
+// a thread below it, which is the difference between attached and floating.
+// Kept small so even the smallest flower still shows most of itself.
+const SOFFIT = -7;
 for (const st of strands) st.top = baseArchY(st.x) + SOFFIT;
 
 let worldH = 0;
@@ -947,11 +952,10 @@ function render(t){
       ctx.stroke();
     }
   }
-  drawCords(Math.max(0.5, 1.1*z), 'rgba(116,97,70,0.42)');
+  // Pale, not dark: a brown thread against a brown doorway is invisible, and
+  // without a visible thread the flowers look like they are hanging on nothing.
+  drawCords(Math.max(0.6, 1.3*z), 'rgba(226,206,168,0.80)');
 
-  // Below this a flower is drawn as a plain rect. The view is fixed now, so
-  // this has to sit under whatever zoom the layout lands on — otherwise the
-  // only view there is comes out as a grid of coloured squares.
   const far = z < 0.04;
   const s = far ? 0 : pickScale();
 
@@ -983,7 +987,7 @@ function render(t){
   }
 
   // the cord seen through the glass
-  if (!far) drawCords(Math.max(0.4, 0.7*z), 'rgba(58,45,30,0.11)');
+  if (!far) drawCords(Math.max(0.4, 0.7*z), 'rgba(246,232,200,0.16)');
 
   if (sel){
     const P = beadWorld(sel), a = P.a;
