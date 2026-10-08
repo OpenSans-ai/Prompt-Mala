@@ -318,10 +318,12 @@ const worldW = MARGIN * 2 + (nStrands - 1) * STRAND_GAP + D_WIDEST;
 const DOORIMG = {
   src: 'public/door.png',
   w: 919, h: 1711,
-  l: 0.1937, r: 0.8651,        // inner faces of the jambs, as fractions of width
-  // underside of the carved arch, left jamb to right jamb, as fractions of height
-  soffit: [0.2934, 0.2566, 0.2379, 0.2250, 0.2063, 0.1976, 0.1882, 0.1753, 0.1642,
-           0.1753, 0.1882, 0.1976, 0.2063, 0.2250, 0.2379, 0.2566, 0.2934]
+  l: 0.225, r: 0.775,          // inner faces of the jambs, as fractions of width
+  // Underside of the carved arch, left jamb to right jamb, as fractions of
+  // height. The small dip in the middle is the carved bracket hanging off the
+  // crown — the garlands pass under it, as they would.
+  soffit: [0.336, 0.295, 0.266, 0.245, 0.231, 0.219, 0.210, 0.206, 0.224,
+           0.206, 0.210, 0.219, 0.231, 0.245, 0.266, 0.295, 0.336]
 };
 
 doorImg.src = DOORIMG.src;   // DOORIMG has to exist first, hence not up there
@@ -332,9 +334,12 @@ const PX = worldW / ((DOORIMG.r - DOORIMG.l) * DOORIMG.w * 0.93);
 
 const ARCH = (() => {
   const imgW = DOORIMG.w * PX, imgH = DOORIMG.h * PX;
-  // slide the image sideways so the middle of its opening sits over the middle
-  // of the curtain
-  const imgL = worldW/2 - ((DOORIMG.l + DOORIMG.r)/2) * imgW;
+  // Slide the image sideways so the middle of its opening sits over the middle
+  // of the curtain. That is the midpoint of the actual garlands, not worldW/2:
+  // worldW carries a margin and half a flower at each end, so the two differ by
+  // about 28 units and the curtain hung visibly off-centre in the doorway.
+  const curtainMid = (strands[0].x + strands[nStrands - 1].x) / 2;
+  const imgL = curtainMid - ((DOORIMG.l + DOORIMG.r)/2) * imgW;
   const inL = imgL + DOORIMG.l * imgW, inR = imgL + DOORIMG.r * imgW;
   return { imgL, imgT: 0, imgW, imgH, inL, inR, cx: (inL+inR)/2, openW: inR - inL };
 })();
