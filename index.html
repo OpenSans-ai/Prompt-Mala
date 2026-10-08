@@ -152,18 +152,15 @@
       <canvas id="cv"></canvas>
       <div id="tip"><div class="t" id="tipT"></div><div class="d" id="tipD"></div></div>
       <div id="tools">
-        <button id="tFit">Reset view</button>
+        <button id="tFit">Clear selection</button>
         <button id="tPause">Pause motion</button>
-        <span class="sep"></span>
-        <button class="ico" id="zOut" aria-label="Zoom out">&minus;</button>
-        <button class="ico" id="zIn" aria-label="Zoom in">+</button>
       </div>
     </div>
 
     <footer id="caption">
       <div id="capTop">
         <span class="lbl">Key</span>
-        <span id="hint">drag the garlands &middot; scroll to zoom &middot; click a flower</span>
+        <span id="hint">brush the garlands &middot; hover or click a flower</span>
       </div>
       <div id="legend"></div>
       <div id="subkey"></div>
@@ -220,9 +217,12 @@ const STRAND_GAP = 27, MARGIN = 30, PAD_W = 9;
 // one of those labels is still available in full on the right — this is about
 // what the eye has to carry, not about throwing data away.
 const KIND_BUD = 0, KIND_SMALL = 1, KIND_FULL = 2, KIND_DOUBLE = 3;
-const KIND_NAMES = ['tight bud','half-open','full bloom','wide open'];
+const KIND_NAMES = ['smallest','small','large','largest'];
 const QUALITY_NAMES = ['rough','mixed','solid','sharp'];
-const KIND_D = [16, 21, 26, 31];      // a better prompt is a wider head
+// A better prompt is a bigger flower, and that is the only thing size says.
+// The form of each species no longer changes with it — a marigold is always a
+// marigold, just larger or smaller.
+const KIND_D = [13, 19, 26, 34];
 
 // Weights: specificity is the strongest single signal of whether a prompt could
 // be acted on alone, so it carries most. Grounding counts upward — pointing at
@@ -238,6 +238,9 @@ function qualityTier(q){ return q < 0.46 ? 0 : q < 0.60 ? 1 : q < 0.74 ? 2 : 3; 
 function beadGap(g){ return g < 0 ? 0 : 1.5 + 8 * (1 - Math.exp(-g / 1000)); }
 // widest bloom, for layout and hit testing
 const D_WIDEST = KIND_D[KIND_D.length - 1];
+// how many pixels across the largest flower should be. This is what sets the
+// zoom now, rather than the zoom setting the flower size.
+const FLOWER_PX = 15;
 
 function rnd(seed){ let x = Math.sin(seed * 12.9898) * 43758.5453; return x - Math.floor(x); }
 
@@ -258,6 +261,14 @@ const GRAIN = (() => {
   return c;
 })();
 let grainFill = null;
+
+// The door is a painting on disk, so index.html is no longer standalone — it
+// needs public/door.png beside it. If the file is missing the curtain still
+// draws, just against bare paper.
+const doorImg = new Image();
+let doorReady = false;
+doorImg.onload = () => { doorReady = true; draw(); };
+doorImg.onerror = () => { console.warn('door.png missing — drawing the garlands without it'); };
 
 /* ---------- build beads + strands ---------- */
 // Sessions of fewer than MIN_BEADS are left out. They were single stubs hanging
@@ -297,46 +308,48 @@ const worldW = MARGIN * 2 + (nStrands - 1) * STRAND_GAP + D_WIDEST;
    soffit directly above it, so the top of the curtain is a dome and the outer
    strands begin lower than the middle ones. Only the width is needed here —
    the floor comes later, once the longest strand is known. */
+/* ---------- the doorway ----------
+   The door is the painting in public/door.png, not something drawn here. What
+   this block does is measure it: where the opening is inside the image, and
+   how its carved soffit runs across. Those numbers were read off the image by
+   tracing the lit left-hand side and mirroring it — the right-hand jamb falls
+   in shadow and a brightness test cannot separate it from the carving. */
+const DOORIMG = {
+  src: 'public/door.png',
+  w: 919, h: 1711,
+  l: 0.1937, r: 0.8651,        // inner faces of the jambs, as fractions of width
+  // underside of the carved arch, left jamb to right jamb, as fractions of height
+  soffit: [0.2934, 0.2566, 0.2379, 0.2250, 0.2063, 0.1976, 0.1882, 0.1753, 0.1642,
+           0.1753, 0.1882, 0.1976, 0.2063, 0.2250, 0.2379, 0.2566, 0.2934]
+};
+
+doorImg.src = DOORIMG.src;   // DOORIMG has to exist first, hence not up there
+
+// world units per image pixel, set so the curtain spans the opening with a
+// little air at each jamb
+const PX = worldW / ((DOORIMG.r - DOORIMG.l) * DOORIMG.w * 0.93);
+
 const ARCH = (() => {
-  const padX = 38, headroom = 54;
-  const inL = -padX, inR = worldW + padX;
-  const openW = inR - inL, a = openW/2;
-  const spring = -headroom;                   // where the arch leaves the jamb
-  // Classic two-centred pointed arch: each half is struck from a centre offset
-  // past the middle, and the two meet in a point at the crown. The rise has to
-  // exceed the half-width or the centres fall inside and it rounds off into a
-  // dome instead of coming to a point.
-  const rise = a * 1.2;
-  const d = (rise*rise - a*a) / (2*a);
-  const Rp = a + d;
-  return { inL, inR, cx:(inL+inR)/2, openW, a, spring, rise, d, Rp,
-           nFoil: 5, cusp: Math.min(openW*0.034, 42),
-           topY: spring - rise };
+  const imgW = DOORIMG.w * PX, imgH = DOORIMG.h * PX;
+  // slide the image sideways so the middle of its opening sits over the middle
+  // of the curtain
+  const imgL = worldW/2 - ((DOORIMG.l + DOORIMG.r)/2) * imgW;
+  const inL = imgL + DOORIMG.l * imgW, inR = imgL + DOORIMG.r * imgW;
+  return { imgL, imgT: 0, imgW, imgH, inL, inR, cx: (inL+inR)/2, openW: inR - inL };
 })();
 
-// The smooth two-centred arch, ignoring the carved foils. Strands hang from
-// this, not from the cusped edge — following the scallops would give the top
-// of the curtain a saw-tooth that reads as a mistake.
+// The soffit in world coordinates, interpolated between the measured samples.
 function baseArchY(x){
-  const dx = x <= ARCH.cx ? x - (ARCH.cx + ARCH.d) : x - (ARCH.cx - ARCH.d);
-  return ARCH.spring - Math.sqrt(Math.max(0, ARCH.Rp*ARCH.Rp - dx*dx));
-}
-// a point on the carved edge: s runs 0 (left spring) -> 0.5 (crown) -> 1 (right)
-function archEdge(s){
-  const left = s <= 0.5;
-  const u = left ? s/0.5 : (1-s)/0.5;                 // 0 at the jamb, 1 at the crown
-  const thA = Math.atan2(-ARCH.rise, -ARCH.d);
-  const th = -Math.PI + u * (thA + Math.PI);
-  // foils bulge inward between cusps; the low exponent sharpens the points
-  const off = ARCH.cusp * Math.pow(Math.abs(Math.sin(ARCH.nFoil*Math.PI*u)), 0.55);
-  const r = ARCH.Rp - off;
-  const ccx = ARCH.cx + (left ? ARCH.d : -ARCH.d);
-  return [ ccx + (left ? 1 : -1) * r * Math.cos(th), ARCH.spring + r * Math.sin(th) ];
+  const t = (x - ARCH.inL) / (ARCH.inR - ARCH.inL);
+  const n = DOORIMG.soffit.length - 1;
+  const u = Math.max(0, Math.min(1, t)) * n;
+  const i = Math.min(n - 1, Math.floor(u)), f = u - i;
+  const a = DOORIMG.soffit[i], b = DOORIMG.soffit[i+1];
+  return ARCH.imgT + (a + (b - a) * f) * ARCH.imgH;
 }
 
-// clear of the cusps, so no strand starts above the carved edge
 const SOFFIT = 14;
-for (const st of strands) st.top = baseArchY(st.x) + ARCH.cusp + SOFFIT;
+for (const st of strands) st.top = baseArchY(st.x) + SOFFIT;
 
 let worldH = 0;
 {
@@ -385,27 +398,12 @@ for (const st of strands) st.cord = st.len;
    rather than a semicircle, because the opening is wider than a single door. */
 // The carved stone surround: a moulding that follows the arch, then a wide
 // band of relief, then a pilaster down each side.
-const DOOR = Object.assign({}, ARCH, {
-  wood:  Math.min(ARCH.openW * 0.026, 30),   // dark timber frame lining the opening
-  mould: Math.min(ARCH.openW * 0.030, 34),   // stone lip outside the timber
-  band:  Math.min(ARCH.openW * 0.165, 210),  // carved band outside that
-  floorY: worldH + 46                        // jambs run just past the longest strand
-});
-// how far the carving stands off the opening edge
-DOOR.stoneOff = DOOR.wood + DOOR.mould * 2;
-DOOR.outL = DOOR.inL - DOOR.stoneOff - DOOR.band;
-DOOR.outR = DOOR.inR + DOOR.stoneOff + DOOR.band;
-// The head of the door is taller than the sides: above the arch sits a carved
-// frieze and then a cornice standing proud of the frame.
-DOOR.header = DOOR.band * 1.05;
-DOOR.cornice = DOOR.band * 0.34;
-DOOR.outT = DOOR.topY - DOOR.stoneOff - DOOR.band - DOOR.header;
+// Everything the frame needs is the image rectangle; the opening runs to the
+// bottom of it, so a garland longer than the door is cut there.
+const DOOR = Object.assign({}, ARCH, { floorY: ARCH.imgT + ARCH.imgH });
 
-const VIEW = (() => {
-  const air = 30;
-  return { l: DOOR.outL - DOOR.cornice - air, r: DOOR.outR + DOOR.cornice + air,
-           t: DOOR.outT - DOOR.cornice - air, b: DOOR.floorY + air };
-})();
+const VIEW = { l: ARCH.imgL, t: ARCH.imgT,
+               r: ARCH.imgL + ARCH.imgW, b: ARCH.imgT + ARCH.imgH };
 VIEW.w = VIEW.r - VIEW.l; VIEW.h = VIEW.b - VIEW.t;
 VIEW.cx = (VIEW.l + VIEW.r)/2; VIEW.cy = (VIEW.t + VIEW.b)/2;
 
@@ -464,7 +462,7 @@ const BLOOM = [
     base:'#5C8A3C', tint:'#BBD79A', deep:'#24401A', caustic:'#8FBE64' },      // UI
   { name:'marigold',      style:'pompom',
     base:'#F2871A', tint:'#FFD36B', deep:'#8E3C05', caustic:'#FFAE38',
-    petals:13, rings:4, wid:0.60, tip:1.00, ruffle:0.20, eye:0.14 },          // Setup
+    petals:13, rows:6, floret:0.30, rings:4, wid:0.60, tip:1.00, ruffle:0.20, eye:0.14 }, // Setup
   { name:'rose',          style:'broad',
     base:'#D13A2A', tint:'#FBBBA6', deep:'#6E1309', caustic:'#F07855',
     petals:7,  rings:3, wid:0.78, tip:0.85, ruffle:0.14, eye:0.20 },          // Bugs
@@ -549,8 +547,8 @@ function makeSprite(D, kind, st, bright, s){
   // A leaf instead of a head: one blade, hanging a little off true, with a
   // midrib and a few side veins. Quality reads as how full the blade is.
   if (sp.leaf){
-    const lopen = kind / (KIND_D.length - 1);
-    const L2 = r * (1.42 + 0.30*lopen), Wd = r * (0.50 + 0.26*lopen);
+    // the blade keeps its proportions; only D changes with quality
+    const L2 = r * 1.56, Wd = r * 0.62;
     x.rotate(-0.30 + rnd(D*5.1) * 0.6);
     const lg = x.createLinearGradient(-Wd, L2*0.5, Wd, -L2*0.5);
     lg.addColorStop(0,    mix(core, base, 0.45));
@@ -617,7 +615,6 @@ function makeSprite(D, kind, st, bright, s){
     x.closePath(); x.fill();
   }
 
-  const open = kind / (KIND_D.length - 1);
   const seed = D*3.7 + sp.petals*1.9 + kind*5.3;
 
   // One floret: a small rounded scallop with its own shadow, body and
@@ -656,26 +653,27 @@ function makeSprite(D, kind, st, bright, s){
   }
 
   if (sp.style === 'pompom'){
-    // A ball of florets seen from the side. Rings still run rim to middle so
-    // the packing stays dense, but nothing is lit by its distance from the
-    // centre — brightness comes from how high up the face a floret sits, which
-    // is what turns a flat rosette into a sphere.
-    const ringsN = Math.max(2, Math.round(2 + open * (sp.rings - 2)));
-    for (let ring = 0; ring < ringsN; ring++){
-      const t2 = ring / Math.max(1, ringsN - 1);
-      const rad = r * (0.86 - 0.70*t2);
-      const rr  = r * (0.30 - 0.10*t2) * (0.86 + 0.28*open);
-      const cnt = Math.max(4, Math.round(sp.petals * (0.42 + 0.58*(1 - t2))));
+    // Florets laid in rows across the face of a ball, the way scales sit on a
+    // sphere — NOT in rings about a centre. Rings are what made these read as
+    // being looked down into, however they were lit: a ring points every petal
+    // at the viewer and puts a hub in the middle. Rows give the head a top, a
+    // bottom and a horizon instead.
+    const rowsN = Math.max(4, Math.round(sp.rows * (0.8 + 0.2)));
+    for (let row = 0; row < rowsN; row++){
+      const v = -1 + 2 * ((row + 0.5) / rowsN);       // -1 top .. +1 bottom
+      const half = Math.sqrt(Math.max(0, 1 - v*v));    // the ball narrows at top and bottom
+      const py = v * r * 0.94;
+      const cnt = Math.max(2, Math.round(sp.petals * half * 0.62));
       for (let i = 0; i < cnt; i++){
-        const j = rnd(seed + ring*17.3 + i*2.7) - 0.5;
-        const a2 = (i / cnt) * Math.PI*2 + ring*0.55 + j*0.22;
-        const px = Math.cos(a2)*rad, py = Math.sin(a2)*rad * 0.94;
-        // high on the head catches the light, low on it falls into shadow
-        const lift = -py / r;
-        floret(px, py,
-               rr * (0.86 + 0.28*rnd(seed + ring*5.1 + i*3.3)),
-               a2 + Math.PI/2 + j*0.4,
-               0.30 + lift*0.46 + j*0.10);
+        const j = rnd(seed + row*17.3 + i*2.7) - 0.5;
+        const u = cnt === 1 ? 0 : -1 + 2 * ((i + 0.5) / cnt);
+        const px = u * half * r * 0.94;
+        // foreshortened toward the silhouette, where the surface turns away
+        const face = Math.sqrt(Math.max(0.08, 1 - u*u));
+        const rr = r * sp.floret * (0.72 + 0.40*face) * (0.86 + 0.26*rnd(seed + row*5.1 + i*3.3));
+        // petals sit outward and down the face of the ball
+        const rot = u * 0.95 + (v > 0 ? v*0.35 : v*0.15) + j*0.35;
+        floret(px, py + j*rr*0.18, rr, rot, 0.62 - (v+1)*0.30 + j*0.10);
       }
     }
   } else if (sp.style === 'bract'){
@@ -700,10 +698,10 @@ function makeSprite(D, kind, st, bright, s){
     }
   } else {
     // Broad overlapping petals, outer rings first, curled toward the middle.
-    const ringsN = Math.max(1, Math.round(1 + open * (sp.rings - 1)));
+    const ringsN = sp.rings;
     for (let ring = ringsN - 1; ring >= 0; ring--){
       const f = ringsN === 1 ? 1 : 0.48 + 0.52 * (ring / (ringsN - 1));
-      const len = r * f * (0.94 + 0.06*open);
+      const len = r * f * 0.97;
       const cnt = Math.max(3, Math.round(sp.petals * (0.55 + 0.45*f)));
       // Shadows for the whole ring first, then the bodies over them. Drawing
       // shadow-then-body per petal buried each body under the next shadow and
@@ -791,7 +789,6 @@ const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let dpr = 1, cvw = 0, cvh = 0;
 const cam = { x: worldW/2, y: worldH/2, z: 1 };
 let minZ = 0.1;
-const Z_MAX = 2.4;   // close enough to read one bead; far less than the old 6x
 
 function resize(){
   dpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -799,36 +796,32 @@ function resize(){
   syncRect();
   cv.width = Math.round(cvw*dpr); cv.height = Math.round(cvh*dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // Zoom out stops with the whole doorway on screen, so the piece reads as a
-  // curtain hanging in an opening rather than as a field of beads.
-  minZ = Math.min(cvw/VIEW.w, cvh/VIEW.h);
-  if (cam.z < minZ) cam.z = minZ;
+  // The door does not zoom and does not pan. It is fitted to the width of the
+  // stage and locked there, so it behaves like a doorway you are standing in
+  // front of rather than an object on a canvas. That fixes the scale of the
+  // garlands with it — whatever the door's width gives is what the flowers
+  // are. The curtain is taller than the frame, so the longest garlands run off
+  // the bottom; that is accepted rather than fought.
+  // The door is a tall portrait painting and the stage is usually wide. Fitting
+  // the whole of it in drops a flower to a pixel or two, so instead the scale
+  // is driven by how big a flower needs to be to read, capped so the door never
+  // runs wider than the stage. The view is anchored to the top of the painting:
+  // you get the carved head, the arch and the garlands, and the empty corridor
+  // floor at the bottom is what falls out of frame.
+  const wantZ = FLOWER_PX / D_WIDEST;
+  cam.z = Math.min(cvw / VIEW.w, wantZ);
+  minZ = cam.z;
+  cam.x = (VIEW.l + VIEW.r) / 2;
+  cam.y = VIEW.t + (cvh / cam.z) / 2;
   draw();
 }
-function fit(){
-  cam.z = minZ; cam.x = VIEW.cx; cam.y = VIEW.cy;
-  clampCam(); draw();
-}
+function fit(){ resize(); }
 
-// The view you land on. Close enough that a single head is legible as a painted
-// flower rather than a dot — the whole curtain at once was pattern, not
-// flowers. The long garlands run off the bottom of the frame; zooming out to
-// minZ still shows the doorway entire.
-const OPEN_FLOWER_PX = 27;
-function openView(){
-  cam.z = Math.max(minZ, Math.min(Z_MAX, OPEN_FLOWER_PX / D_WIDEST));
-  cam.x = DOOR.cx;
-  // sit the crown of the arch just inside the top edge
-  cam.y = DOOR.topY + (cvh/cam.z) * 0.44;
-  clampCam(); draw();
-}
-function clampCam(){
-  const vw = cvw/cam.z, vh = cvh/cam.z;
-  if (VIEW.w <= vw) cam.x = VIEW.cx;
-  else cam.x = Math.max(VIEW.l + vw/2, Math.min(VIEW.r - vw/2, cam.x));
-  if (VIEW.h <= vh) cam.y = VIEW.cy;
-  else cam.y = Math.max(VIEW.t + vh/2, Math.min(VIEW.b - vh/2, cam.y));
-}
+// the name the controls call; there is only one framing now
+function openView(){ resize(); }
+
+function clampCam(){ /* nothing to clamp: the layout fixes the view */ }
+
 const s2wx = sx => (sx - cvw/2)/cam.z + cam.x;
 const s2wy = sy => (sy - cvh/2)/cam.z + cam.y;
 
@@ -900,220 +893,32 @@ function render(t){
   ctx.fillStyle = '#f4efe4';
   ctx.fillRect(0, 0, cvw, cvh);
 
-  // ---- the carved timber surround ----
-  // The opening, as the cusped edge the door is carved to.
-  const EDGE_N = 180;
-  // `keep` appends to the current path instead of starting a new one, which is
-  // what the even-odd clip for the stone needs.
-  function openingPath(grow, keep){
-    const g = grow || 0;
-    if (!keep) ctx.beginPath();
-    ctx.moveTo(w2x(DOOR.inL - g), w2y(DOOR.floorY));
-    ctx.lineTo(w2x(DOOR.inL - g), w2y(DOOR.spring));
-    for (let i = 0; i <= EDGE_N; i++){
-      const p = archEdge(i/EDGE_N);
-      // push the whole profile outward from the arch centre when growing
-      const ex2 = p[0] + (p[0] < DOOR.cx ? -g : g);
-      ctx.lineTo(w2x(ex2), w2y(p[1] - g));
+  // ---- the door ----
+  // The painting itself, laid into world space so the curtain and the opening
+  // scale together. Until it has decoded there is nothing to draw but paper.
+  const ix = w2x(ARCH.imgL), iy = w2y(ARCH.imgT);
+  const iw = ARCH.imgW * z, ih = ARCH.imgH * z;
+  if (doorReady) ctx.drawImage(doorImg, ix, iy, iw, ih);
+
+  // The opening, traced from the measured soffit: down one jamb, across the
+  // bottom of the image, up the other, then back over the arch.
+  function openingPath(){
+    const n = DOORIMG.soffit.length - 1;
+    ctx.beginPath();
+    ctx.moveTo(w2x(ARCH.inL), w2y(DOOR.floorY));
+    ctx.lineTo(w2x(ARCH.inL), w2y(baseArchY(ARCH.inL)));
+    for (let i = 1; i <= n; i++){
+      const xw = ARCH.inL + (ARCH.inR - ARCH.inL) * (i/n);
+      ctx.lineTo(w2x(xw), w2y(baseArchY(xw)));
     }
-    ctx.lineTo(w2x(DOOR.inR + g), w2y(DOOR.floorY));
+    ctx.lineTo(w2x(ARCH.inR), w2y(DOOR.floorY));
     ctx.closePath();
   }
 
-  const stoneL = w2x(DOOR.outL), stoneR = w2x(DOOR.outR), stoneT = w2y(DOOR.outT),
-        stoneB = w2y(DOOR.floorY);
-  if (stoneR > 0 && stoneL < cvw && stoneB > 0 && stoneT < cvh){
-    // Dark oiled timber, catching the light across the top left.
-    const wood = ctx.createLinearGradient(stoneL, stoneT, stoneR, stoneB);
-    wood.addColorStop(0,    '#6d4a2b');
-    wood.addColorStop(0.30, '#5b3b21');
-    wood.addColorStop(0.62, '#4a2f1a');
-    wood.addColorStop(1,    '#3a2312');
-    ctx.fillStyle = wood;
-    ctx.fillRect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
-
-    // long grain running the height of the jambs
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
-    ctx.clip();
-    ctx.globalAlpha = 0.18;
-    const gstep = Math.max(3, 14*z);
-    for (let gx = stoneL; gx < stoneR; gx += gstep){
-      const n = rnd(Math.round(gx/gstep)*2.7);
-      ctx.strokeStyle = n > 0.5 ? 'rgba(176,126,76,0.9)' : 'rgba(30,17,8,0.9)';
-      ctx.lineWidth = Math.max(0.4, (0.4 + n)*z);
-      ctx.beginPath();
-      ctx.moveTo(gx, stoneT);
-      ctx.lineTo(gx + (n - 0.5)*gstep*1.5, stoneB);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // relief carving, lit from the upper left: a light edge above each motif
-    // and a shadow below is all it takes to read as cut stone.
-    const bw = DOOR.band * z;
-    if (bw > 9){
-      const step = DOOR.band * 0.52 * z;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
-      openingPath(DOOR.stoneOff, true);
-      ctx.clip('evenodd');
-
-      // One rosette per cell. Relief is faked the way a carver would read it:
-      // a shadow cast down-right, a highlight up-left, the flat of the stone
-      // between them.
-      // A six-petal rosette: valleys between the petals, tips pushed out, so it
-      // reads as a flower rather than a stud. Kept small and low in contrast —
-      // at this size carving should read as texture, not as relief you can
-      // count. It only resolves into flowers when you zoom in.
-      const petals = 6, rr = step * 0.38, TAU = Math.PI*2;
-      function rosette(cx2, cy2, r, rot, fill){
-        const ri = r * 0.44;
-        ctx.beginPath();
-        ctx.moveTo(cx2 + Math.cos(rot)*ri, cy2 + Math.sin(rot)*ri);
-        for (let p = 0; p < petals; p++){
-          const t0 = rot + p*TAU/petals, t1 = t0 + TAU/petals, tm = (t0+t1)/2;
-          ctx.quadraticCurveTo(cx2 + Math.cos(tm)*r*1.18, cy2 + Math.sin(tm)*r*1.18,
-                               cx2 + Math.cos(t1)*ri,     cy2 + Math.sin(t1)*ri);
-        }
-        ctx.closePath();
-        ctx.fillStyle = fill; ctx.fill();
-      }
-
-      // Walk only the cells that can land on screen. Zoomed in, the stone rect
-      // is many times the viewport, and without this the loop does most of its
-      // work on motifs nobody can see.
-      const yFrom = Math.max(stoneT, -step), yTo = Math.min(stoneB, cvh + step);
-      const xFrom = Math.max(stoneL, -step), xTo = Math.min(stoneR, cvw + step);
-      const gy0 = Math.floor((yFrom - stoneT) / step);
-      for (let gy = gy0, y = stoneT + step*(gy0 + 0.5); y < yTo + step; gy++, y += step){
-        const off = (gy % 2) * step * 0.5;      // stagger, so it reads as carving
-        const x0 = stoneL + step*0.5 + off;
-        const i0 = Math.max(0, Math.floor((xFrom - x0) / step));
-        for (let x = x0 + i0*step; x < xTo + step; x += step){
-          const n = rnd(Math.round(x/step)*7.3 + gy*3.1);
-          const r = rr * (0.84 + n*0.26), rot = n * Math.PI;
-          const sh = Math.max(0.7, r*0.17), hi = Math.max(0.6, r*0.13);
-          rosette(x + sh, y + sh, r, rot, 'rgba(20,11,4,0.34)');
-          rosette(x - hi, y - hi, r, rot, 'rgba(201,150,96,0.26)');
-          rosette(x, y, r, rot, 'rgba(99,65,36,0.26)');
-        }
-      }
-      ctx.restore();
-    }
-
-    // pilaster down each jamb
-    const pw = Math.max(2, DOOR.band * 0.42 * z);
-    for (const px of [stoneL + bw*0.5, stoneR - bw*0.5]){
-      const pg = ctx.createLinearGradient(px - pw/2, 0, px + pw/2, 0);
-      pg.addColorStop(0, 'rgba(24,13,5,0.44)');
-      pg.addColorStop(0.34, 'rgba(192,142,90,0.32)');
-      pg.addColorStop(1, 'rgba(24,13,5,0.48)');
-      ctx.fillStyle = pg;
-      ctx.fillRect(px - pw/2, w2y(DOOR.spring), pw, stoneB - w2y(DOOR.spring));
-    }
-
-    // outer edge of the whole surround
-    ctx.strokeStyle = 'rgba(26,14,6,0.42)';
-    ctx.lineWidth = Math.max(0.8, 2*z);
-    ctx.strokeRect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
-
-    // ---- the head of the door: frieze, then a cornice standing proud ----
-    const corH = DOOR.cornice * z, friezeH = DOOR.header * z;
-    if (friezeH > 5){
-      const fy0 = stoneT, fy1 = stoneT + friezeH;
-      // sunk frieze, a touch darker than the jambs so it reads as set back
-      const fg = ctx.createLinearGradient(0, fy0, 0, fy1);
-      fg.addColorStop(0, '#53351c'); fg.addColorStop(0.5, '#3f2714'); fg.addColorStop(1, '#4a2f19');
-      ctx.fillStyle = fg;
-      ctx.fillRect(stoneL, fy0, stoneR - stoneL, friezeH);
-
-      // a running scroll along it — alternating hooks, the way a carved
-      // frieze repeats rather than scattering motifs
-      const stepF = Math.max(8, DOOR.band * 0.30 * z);
-      if (stepF > 9){
-        ctx.save();
-        ctx.beginPath(); ctx.rect(stoneL, fy0, stoneR - stoneL, friezeH); ctx.clip();
-        const midF = (fy0 + fy1)/2, amp = friezeH*0.26;
-        for (let pass = 0; pass < 2; pass++){
-          ctx.strokeStyle = pass ? 'rgba(199,148,95,0.34)' : 'rgba(20,11,4,0.42)';
-          ctx.lineWidth = Math.max(0.6, friezeH*0.085);
-          const off = pass ? -friezeH*0.055 : friezeH*0.055;
-          ctx.beginPath();
-          for (let fx = stoneL; fx < stoneR + stepF; fx += stepF){
-            ctx.moveTo(fx, midF + off);
-            ctx.bezierCurveTo(fx + stepF*0.24, midF - amp + off,
-                              fx + stepF*0.76, midF + amp + off,
-                              fx + stepF, midF + off);
-          }
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
-      ctx.strokeStyle = 'rgba(18,10,3,0.55)';
-      ctx.lineWidth = Math.max(0.6, 1.6*z);
-      ctx.beginPath(); ctx.moveTo(stoneL, fy1); ctx.lineTo(stoneR, fy1); ctx.stroke();
-      ctx.strokeStyle = 'rgba(206,156,102,0.22)';
-      ctx.beginPath(); ctx.moveTo(stoneL, fy1 + Math.max(1, 2*z)); ctx.lineTo(stoneR, fy1 + Math.max(1, 2*z)); ctx.stroke();
-    }
-
-    // cornice: wider than the frame, with its shadow cast down onto the frieze
-    if (corH > 3){
-      const cl = stoneL - DOOR.cornice*z, cr = stoneR + DOOR.cornice*z;
-      ctx.fillStyle = 'rgba(16,9,3,0.34)';
-      ctx.fillRect(cl, stoneT, cr - cl, Math.max(1.5, corH*0.30));
-      const cg = ctx.createLinearGradient(0, stoneT - corH, 0, stoneT);
-      cg.addColorStop(0, '#8a6038'); cg.addColorStop(0.55, '#5e3d21'); cg.addColorStop(1, '#45290f');
-      ctx.fillStyle = cg;
-      ctx.fillRect(cl, stoneT - corH, cr - cl, corH);
-      ctx.strokeStyle = 'rgba(214,166,112,0.30)';
-      ctx.lineWidth = Math.max(0.5, 1.2*z);
-      ctx.beginPath(); ctx.moveTo(cl, stoneT - corH); ctx.lineTo(cr, stoneT - corH); ctx.stroke();
-    }
-  }
-
-  // ---- the opening, with daylight behind it ----
-  ctx.save();
-  openingPath();
-  ctx.clip();
-  const day = ctx.createLinearGradient(0, w2y(DOOR.topY), 0, w2y(DOOR.floorY));
-  day.addColorStop(0,    '#fffdf4');
-  day.addColorStop(0.42, '#fff8e4');
-  day.addColorStop(1,    '#f3e4c4');
-  ctx.fillStyle = day;
-  ctx.fillRect(0, 0, cvw, cvh);
-
-  // the reveal — the thickness of the stone, shading the edge of the opening
-  ctx.save();
-  ctx.shadowColor = 'rgba(96,74,42,0.5)';
-  ctx.shadowBlur = Math.max(6, 26*z);
-  ctx.lineWidth = Math.max(2, 20*z);
-  ctx.strokeStyle = 'rgba(96,74,42,0.5)';
-  openingPath(); ctx.stroke();
-  ctx.restore();
-
-  // The rail the strands hang from, following the arch so each cord leaves the
-  // soffit directly above it.
-  ctx.beginPath();
-  for (let i = 0; i <= 80; i++){
-    const x = DOOR.inL + (DOOR.openW * i/80);
-    const y = baseArchY(x) + ARCH.cusp + SOFFIT;
-    i === 0 ? ctx.moveTo(w2x(x), w2y(y)) : ctx.lineTo(w2x(x), w2y(y));
-  }
-  ctx.strokeStyle = 'rgba(70,52,30,0.22)';
-  ctx.lineWidth = Math.max(1.4, 7*z);
-  ctx.stroke();
-  ctx.strokeStyle = '#9c7a4e';
-  ctx.lineWidth = Math.max(0.9, 4*z);
-  ctx.stroke();
-  ctx.restore();
-
-  const padX = 60, padY = 80;
+  const padX = 60, padY = 80;    // how far off screen a flower still counts as visible
 
   // Everything that hangs is confined to the opening, so a swinging strand
-  // cannot stray out over the wall.
+  // cannot stray out over the carving.
   ctx.save();
   openingPath();
   ctx.clip();
@@ -1142,10 +947,10 @@ function render(t){
   }
   drawCords(Math.max(0.5, 1.1*z), 'rgba(116,97,70,0.42)');
 
-  // Below this the beads are drawn as plain rects. It has to sit under the
-  // fit-width zoom or the opening view — the one everybody sees — would be
-  // blocks rather than glass.
-  const far = z < 0.12;
+  // Below this a flower is drawn as a plain rect. The view is fixed now, so
+  // this has to sit under whatever zoom the layout lands on — otherwise the
+  // only view there is comes out as a grid of coloured squares.
+  const far = z < 0.04;
   const s = far ? 0 : pickScale();
 
   for (const b of beads){
@@ -1193,120 +998,6 @@ function render(t){
 
   ctx.restore();   // end of the opening clip
 
-  // ---- frame round the opening, over everything that hangs inside ----
-  // Strokes are centred on the path, so a width of 2w reaches w either side.
-  // The timber sits on the opening edge, the stone lip steps out beyond it.
-  const ww = DOOR.wood*z*2, mw = DOOR.mould*z*2;
-  const l = w2x(DOOR.inL), rgt = w2x(DOOR.inR);
-  ctx.save();
-  ctx.lineJoin = 'round';
-
-  // stone lip, outside the timber
-  const lip = ctx.createLinearGradient(l - mw, 0, rgt + mw, 0);
-  lip.addColorStop(0,    '#5a3a1f');
-  lip.addColorStop(0.22, '#ad7d4b');
-  lip.addColorStop(0.5,  '#79512f');
-  lip.addColorStop(0.78, '#a37546');
-  lip.addColorStop(1,    '#4c2f17');
-  ctx.strokeStyle = lip;
-  ctx.lineWidth = mw;
-  openingPath(DOOR.wood + DOOR.mould); ctx.stroke();
-
-  // Stepped reveals. The reference frame is not one flat band but a series of
-  // steps falling back toward the opening, each catching light on its top edge
-  // and throwing a line of shadow on the one below.
-  const steps = 3;
-  for (let i = 0; i < steps; i++){
-    const off = DOOR.wood + DOOR.mould*2 + (DOOR.band * (0.16 + i*0.26));
-    ctx.strokeStyle = 'rgba(18,10,3,0.40)';
-    ctx.lineWidth = Math.max(0.5, 2.0*z);
-    openingPath(off); ctx.stroke();
-    ctx.strokeStyle = 'rgba(202,152,98,0.26)';
-    ctx.lineWidth = Math.max(0.4, 1.2*z);
-    openingPath(off + DOOR.mould*0.34); ctx.stroke();
-  }
-
-  // dark timber frame, lining the opening itself
-  const tim = ctx.createLinearGradient(l - ww, 0, rgt + ww, 0);
-  tim.addColorStop(0,    '#3b2617');
-  tim.addColorStop(0.17, '#8a6340');
-  tim.addColorStop(0.33, '#56381f');
-  tim.addColorStop(0.58, '#7b5531');
-  tim.addColorStop(0.74, '#4a301b');
-  tim.addColorStop(0.92, '#8b663f');
-  tim.addColorStop(1,    '#35210f');
-  ctx.strokeStyle = 'rgba(46,30,16,0.34)';
-  ctx.lineWidth = ww + Math.max(1.2, 3*z);
-  openingPath(); ctx.stroke();
-  ctx.strokeStyle = tim;
-  ctx.lineWidth = ww;
-  openingPath(); ctx.stroke();
-
-  // a waxed highlight along the timber, and a dark line where it meets the air
-  ctx.strokeStyle = 'rgba(214,166,108,0.34)';
-  ctx.lineWidth = Math.max(0.6, 2.2*z);
-  openingPath(DOOR.wood*0.45); ctx.stroke();
-  ctx.strokeStyle = 'rgba(42,26,12,0.30)';
-  ctx.lineWidth = Math.max(0.5, 1.4*z);
-  openingPath(DOOR.wood*0.96); ctx.stroke();
-
-  // grain in the timber: a few strokes running just off the frame line
-  ctx.globalAlpha = 0.16;
-  for (let i = 0; i < 4; i++){
-    ctx.strokeStyle = i % 2 ? 'rgba(252,222,180,0.9)' : 'rgba(40,24,10,0.9)';
-    ctx.lineWidth = Math.max(0.4, (0.7 + i*0.25)*z);
-    openingPath(DOOR.wood * (-0.55 + i*0.42)); ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-  ctx.restore();
-
-  // ---- a branch leaning in over the top corner ----
-  // Purely scene: it carries no data. It is what stops the head of the door
-  // reading as a bare rectangle.
-  {
-    const bx = w2x(DOOR.outR + DOOR.cornice*0.6), by = w2y(DOOR.outT - DOOR.cornice*0.4);
-    const reach = DOOR.band * 2.6 * z;
-    if (reach > 12 && bx > -reach && bx - reach < cvw && by < cvh + reach){
-      ctx.save();
-      ctx.translate(bx, by);
-      for (let b2 = 0; b2 < 3; b2++){
-        const a0 = Math.PI * (0.80 + b2*0.085);          // sweeping down and left
-        const len = reach * (0.72 + 0.28*rnd(b2*3.1));
-        ctx.save();
-        ctx.rotate(a0);
-        ctx.strokeStyle = 'rgba(72,92,46,0.75)';
-        ctx.lineWidth = Math.max(0.6, 2.2*z);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(len*0.5, -len*0.16, len, len*0.12);
-        ctx.stroke();
-        const n2 = Math.max(4, Math.round(len / Math.max(6, 13*z)));
-        for (let i = 1; i <= n2; i++){
-          const t2 = i/n2;
-          const px = len*t2, py = -len*0.16*2*t2*(1-t2) + len*0.12*t2*t2;
-          for (const side of [-1, 1]){
-            ctx.save();
-            ctx.translate(px, py);
-            ctx.rotate(side * (0.75 + rnd(b2*7 + i)*0.3));
-            const ll = Math.max(2, (9 + rnd(b2*5+i)*5) * z), lw = ll*0.34;
-            const lgd = ctx.createLinearGradient(0, 0, 0, -ll);
-            lgd.addColorStop(0, 'rgba(66,92,40,0.9)');
-            lgd.addColorStop(1, 'rgba(126,158,76,0.85)');
-            ctx.fillStyle = lgd;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.quadraticCurveTo( lw, -ll*0.45, 0, -ll);
-            ctx.quadraticCurveTo(-lw, -ll*0.45, 0, 0);
-            ctx.closePath(); ctx.fill();
-            ctx.restore();
-          }
-        }
-        ctx.restore();
-      }
-      ctx.restore();
-    }
-  }
-
   // ---- the tooth of the paper, over everything ----
   if (!grainFill) grainFill = ctx.createPattern(GRAIN, 'repeat');
   ctx.save();
@@ -1352,7 +1043,7 @@ function syncRect(){ const r = cv.getBoundingClientRect(); cvLeft = r.left; cvTo
 const ex = e => e.clientX - cvLeft, ey = e => e.clientY - cvTop;
 
 const ptrs = new Map();
-let dragging = false, moved = 0, downX = 0, downY = 0, pinchD = 0, pinchZ = 1, pinchMid = null;
+let dragging = false, moved = 0, downX = 0, downY = 0;
 
 cv.addEventListener('pointerdown', e => {
   cv.setPointerCapture(e.pointerId);
@@ -1360,13 +1051,6 @@ cv.addEventListener('pointerdown', e => {
   ptrs.set(e.pointerId, { x: ex(e), y: ey(e) });
   unlock();
   if (ptrs.size === 1){ dragging = true; moved = 0; downX = ex(e); downY = ey(e); }
-  else if (ptrs.size === 2){
-    const p = [...ptrs.values()];
-    pinchD = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
-    pinchZ = cam.z;
-    pinchMid = { x: (p[0].x + p[1].x)/2, y: (p[0].y + p[1].y)/2 };
-    pinchMid.wx = s2wx(pinchMid.x); pinchMid.wy = s2wy(pinchMid.y);
-  }
 });
 
 cv.addEventListener('pointermove', e => {
@@ -1375,22 +1059,10 @@ cv.addEventListener('pointermove', e => {
   const dx = ex(e) - p.x, dy = ey(e) - p.y;
   p.x = ex(e); p.y = ey(e);
 
-  if (ptrs.size >= 2){
-    const q = [...ptrs.values()];
-    const d = Math.hypot(q[0].x - q[1].x, q[0].y - q[1].y);
-    if (pinchD > 0){
-      cam.z = Math.max(minZ, Math.min(Z_MAX, pinchZ * (d/pinchD)));
-      const mx = (q[0].x + q[1].x)/2, my = (q[0].y + q[1].y)/2;
-      cam.x = pinchMid.wx - (mx - cvw/2)/cam.z;
-      cam.y = pinchMid.wy - (my - cvh/2)/cam.z;
-      clampCam(); draw();
-    }
-    return;
-  }
+  if (ptrs.size >= 2) return;      // no pinch: the view does not zoom
 
+  // Dragging pushes the garlands about; it does not move the view.
   moved += Math.abs(dx) + Math.abs(dy);
-  cam.x -= dx/cam.z; cam.y -= dy/cam.z;
-  clampCam();
 
   const pwx = s2wx(ex(e));
   const reach = Math.max(170, 150/cam.z);
@@ -1413,7 +1085,6 @@ cv.addEventListener('pointermove', e => {
 
 function up(e){
   ptrs.delete(e.pointerId);
-  if (ptrs.size < 2){ pinchD = 0; pinchMid = null; }
   if (ptrs.size === 0){
     if (dragging && moved < 9) pick(downX, downY);
     dragging = false;
@@ -1422,18 +1093,7 @@ function up(e){
 cv.addEventListener('pointerup', up);
 cv.addEventListener('pointercancel', up);
 
-cv.addEventListener('wheel', e => {
-  e.preventDefault();
-  unlock();
-  syncRect();
-  const px = ex(e), py = ey(e);
-  const wx = s2wx(px), wy = s2wy(py);
-  const f = Math.exp(-e.deltaY * 0.0016);
-  cam.z = Math.max(minZ, Math.min(Z_MAX, cam.z * f));
-  cam.x = wx - (px - cvw/2)/cam.z;
-  cam.y = wy - (py - cvh/2)/cam.z;
-  clampCam(); draw();
-}, { passive: false });
+// No wheel handler: the view is fixed, so the page scrolls normally over it.
 
 /* ---------- hit test, selection, hover ---------- */
 let sel = null;
@@ -1535,7 +1195,7 @@ function showPanel(b){
   // The flower only shows the first of these. The rest are the detail that used
   // to be painted onto it and now lives here instead.
   document.getElementById('sBars').innerHTML =
-    barRow('Overall · drawn as openness', QUALITY_NAMES[b.kind] + ' · ' + KIND_NAMES[b.kind], b.q) +
+    barRow('Overall · drawn as size', QUALITY_NAMES[b.kind] + ' · ' + KIND_NAMES[b.kind], b.q) +
     '<div class="brk">' +
     barRow('Specificity', LEGEND.specificity[b.spec], 1 - b.spec/3) +
     barRow('Clarity',     LEGEND.clarity[b.clarity],  1 - b.clarity/2) +
@@ -1671,21 +1331,19 @@ function buildLegend(){
   const tiers = [0,0,0,0];
   for (const b of beads) tiers[b.kind]++;
   // shown on the marigold: openness barely reads on a leaf
-  legendEl.appendChild(group('How open · overall quality of the prompt',
+  legendEl.appendChild(group('Size · overall quality of the prompt',
     KIND_NAMES.map((lab, k) =>
       item({ phase:1, kind:k, D:KIND_D[k] },
            lab, QUALITY_NAMES[k] + ' · ' + nf.format(tiers[k])))));
 
   document.getElementById('subkey').innerHTML =
-    '<span><b>Openness</b> rolls up specificity, clarity, grounding and how many asks' +
+    '<span><b>Size</b> rolls up specificity, clarity, grounding and how many asks' +
     ' &mdash; each on its own is in the panel</span>' +
     '<span><b>Spacing down a garland</b> the real pause before that prompt</span>' +
     '<span><b>Each garland</b> one session, left to right in order</span>';
 }
 
-document.getElementById('zIn').onclick = () => { unlock(); cam.z = Math.min(Z_MAX, cam.z*1.6); clampCam(); draw(); };
-document.getElementById('zOut').onclick = () => { cam.z = Math.max(minZ, cam.z/1.6); clampCam(); draw(); };
-document.getElementById('tFit').onclick = () => { sel = null; showPanel(null); hideTip(); openView(); };
+document.getElementById('tFit').onclick = () => { sel = null; showPanel(null); hideTip(); draw(); };
 
 const tPause = document.getElementById('tPause');
 tPause.onclick = () => {

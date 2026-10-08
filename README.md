@@ -8,19 +8,25 @@ prompts are not drawn: 21 of them, 107 prompts, 4.5% of the total. They hung as 
 one to nine flowers and read as fraying rather than as sessions, and each still took a
 full garland's width. `MIN_BEADS` in `index.html` is the threshold.
 
-Nothing here is a photograph or a texture file. Every flower, and the carved timber around
-them, is drawn procedurally into a canvas each frame.
+The doorway is a painting, `public/door.png`. Everything hanging in it — every flower, leaf
+and thread — is drawn procedurally into a canvas each frame.
+
+**`index.html` is no longer self-contained.** It needs `public/door.png` beside it. Opened
+on its own the curtain still draws, but against bare paper with no doorway; the console
+says so. This is a change from how the piece used to work, and it is the cost of using a
+painted door rather than a drawn one.
 
 ## Files
 
 | Path | Publish? | What it is |
 |---|---|---|
-| `index.html` | yes | The piece. Single self-contained file — open it directly, no server needed. |
+| `index.html` | yes | The piece. Needs `public/door.png` alongside it. |
+| `public/door.png` | yes | The painted doorway, 919×1711. 2.2MB. |
 | `public/data/beads.json` | yes | The labelled data as a separate artifact. Labels, numbers and timestamps only. |
 | `private/labeled_prompts_full.json` | **no** | Same records **with the prompt text**. Working file, git-ignored. |
 
-`index.html` has the data inlined so it works from `file://`, offline, and when
-emailed as one attachment. That inlined copy is identical to `beads.json` — no prompt text.
+`index.html` has the data inlined, so the only thing it needs from outside is the door
+image. That inlined copy is identical to `beads.json` — no prompt text.
 
 ## Fixed structure
 
@@ -116,51 +122,34 @@ entries to 43 — four flowers times four degrees of openness times the zoom ste
 
 ## The doorway
 
-The curtain hangs in a cusped doorway of dark carved timber, with daylight behind it. There is no wall or
-floor drawn around it — the page shows through, so the doorway reads as one object on
-paper rather than as a room. Everything that hangs is clipped to the opening, so a
-swinging strand cannot stray outside it. There is no hinged door: the curtain *is* what
-closes the opening.
+The door is `public/door.png` drawn into the scene, not geometry. What the code holds is a
+*measurement* of it: where the opening sits inside the image, and how the carved soffit runs
+across the top. Those numbers are in `DOORIMG`.
 
-The arch is a two-centred pointed arch — each half struck from a centre offset past the
-middle, the two meeting in a point at the crown. The rise has to exceed the half-width or
-the centres fall inside and it rounds off into a dome instead of coming to a point. Five
-foils are cut into each half, bulging inward between sharp cusps.
+They were read off the image rather than guessed. Tracing the dark interior against the
+bright frame works down the left-hand jamb, which is lit; the right-hand jamb falls in
+shadow and no brightness threshold separates it from the carving. The arch is symmetric, so
+the lit half was traced and mirrored.
 
-Working outward from the opening: a timber bead lining it, then a moulded lip, then three
-stepped reveals falling back toward the opening, then a band of carved rosettes, then a
-post down each jamb. It is all one dark oiled wood, with the grain running the height of
-the jambs.
+Everything else follows from that measurement. `PX` sets how many world units one image
+pixel is worth, chosen so the 57 garlands span the opening with a little air at each jamb.
+The garland tops come from the soffit, so they hang from the painted arch. The opening path
+— down one jamb, across the bottom of the image, up the other, back over the arch — is the
+clip, so nothing strays onto the carving.
 
-The head is taller than the sides, as a real door's is: above the arch sits a sunk frieze
-with a running scroll carved along it, and over that a cornice standing proud of the frame
-and casting its shadow down. A branch leans in over the top corner. That one carries no
-data at all — it is there because without it the head of the door reads as a bare
-rectangle.
-
-Each layer is a stroke along the arch profile, offset further out than the last — strokes
-are centred on the path, so a width of 2w reaches w either side, and `DOOR.stoneOff` is
-where the outer carving has to start to clear the bead.
-The carving is deliberately small and low in contrast — at the opening zoom it should read
-as texture, and only resolve into rosettes when you zoom in. Relief is faked the way a
-carver reads it, a shadow cast down-right and a highlight up-left, with the offsets floored
-at about a pixel so it does not flatten out when zoomed away.
-
-The arch has to be solved before the flowers, because the garlands hang from it: the arch
-comes from the curtain's width, the garland tops from the arch, the flower depths from the
-tops, and only then is the floor placed under the longest garland. Garlands hang from the
-*smooth* arch, not the cusped edge — following the scallops would give the top of the
-curtain a saw-tooth that reads as a mistake.
+A garland longer than the door is cut at the bottom of the image. That is accepted rather
+than fought.
 
 ## Interaction
 
 The piece hangs on the left; a reading of one flower sits on the right.
 
-- **Drag** across the garlands — they sway and rustle softly, and the view pans with you.
-- **Pinch** (or scroll wheel) to zoom. You land close enough that a single head reads as a
-  painted flower rather than a dot; the long garlands run off the bottom of the frame.
-  Zooming out stops with the whole doorway in view, where it reads as pattern instead.
-  **Reset view** returns to the opening framing, not to the whole doorway.
+- **Drag** across the garlands — they sway and rustle softly. Dragging moves the flowers,
+  not the view.
+- **There is no zoom and no pan.** The door holds still, the way a doorway does. The scale
+  is set by how big a flower has to be to read — `FLOWER_PX` — capped so the door never runs
+  wider than the stage, and anchored to the top of the painting. You get the carved head,
+  the arch and the garlands; the empty corridor floor is what falls out of frame.
 - **Hover** a flower and the side panel reads it straight away — specificity as the
   headline, then the analysis, then the context. A small label follows the pointer too.
 - **Click** to pin a flower, so the panel holds it when the pointer moves off. Previous/Next
