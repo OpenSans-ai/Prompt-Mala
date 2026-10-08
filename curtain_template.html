@@ -202,6 +202,7 @@
 
 </div>
 
+<script>
 /*__DATA__*/
 
 /* ---------- fixed structure ---------- */
@@ -438,22 +439,43 @@ const BRIGHT = [-0.06, 0, 0.07];
 // caustic = the warm light sitting in the middle of the head.
 // Pulled off the pure screen hues and toward pigment — these have to look mixed
 // rather than picked.
+// Four different flowers, not four tints of one. A real garland is strung from
+// whatever is in season, and giving each phase its own species means you can
+// tell them apart by shape as well as by colour — which matters once the heads
+// are small or the light is warm enough to flatten the hues together.
+//
+//   petals/rings   how the head is built
+//   wid            petal width as a fraction of its length
+//   tip            1 round, 0 pointed
+//   ruffle         how much each petal wanders off true
+// UI is the leaf. It is 63% of the data, and in a real garland the green is
+// what there is most of — marigolds are strung through it, not the other way
+// round. Making the dominant phase the quiet element is also what keeps the
+// curtain from shouting: the colour lands on the three phases you actually want
+// to pick out.
 const BLOOM = [
-  { base:'#3F6FD8', tint:'#CBDCF7', deep:'#1B2F6B', caustic:'#7FA6EC' }, // UI    — cornflower
-  { base:'#E9A52A', tint:'#FBE6B4', deep:'#8A5612', caustic:'#F7CE72' }, // Setup — marigold
-  { base:'#D44433', tint:'#F7C9BC', deep:'#781D14', caustic:'#EE8468' }, // Bugs  — vermilion
-  { base:'#C04C92', tint:'#F3C9E2', deep:'#67204B', caustic:'#DE8DBE' }, // UX    — bougainvillea
+  { name:'leaf',          leaf:true,
+    base:'#5C8A3C', tint:'#BBD79A', deep:'#24401A', caustic:'#8FBE64' },      // UI
+  { name:'marigold',      style:'pompom',
+    base:'#F2871A', tint:'#FFD36B', deep:'#8E3C05', caustic:'#FFAE38',
+    petals:13, rings:4, wid:0.60, tip:1.00, ruffle:0.20, eye:0.14 },          // Setup
+  { name:'rose',          style:'broad',
+    base:'#D13A2A', tint:'#FBBBA6', deep:'#6E1309', caustic:'#F07855',
+    petals:7,  rings:3, wid:0.78, tip:0.85, ruffle:0.14, eye:0.20 },          // Bugs
+  { name:'bougainvillea', style:'bract',
+    base:'#C2458E', tint:'#F7C4E0', deep:'#5E1842', caustic:'#E07EB8',
+    petals:3,  rings:1, wid:0.86, tip:0.46, ruffle:0.42, eye:0.14 },          // UX
 ];
 
 // Only phase varies here. Clarity, specificity, grounding and bundling each used
 // to own a visual property; between them they put five things on every head and
 // the curtain read as noise at any zoom where you could see the whole thing.
 // They are rolled into how open the flower is, and spelled out one by one on the
-// right. The cache key collapses to the phase as a result.
+// right. The cache key is the species and how far open it is, nothing else.
 function beadStyle(b){
   return {
     g: BLOOM[b.phase],
-    soft: 0.34, lit: 0.8, alpha: 1, petals: 8,
+    soft: 0.34, lit: 0.8, alpha: 1,
     leaf: false, bud: false,
     vk: 'p' + b.phase
   };
@@ -466,20 +488,22 @@ function beadStyle(b){
    two or three times at widening scale and falling alpha, which is what keeps
    it from reading as vector art. */
 
-// one soft petal, base at the origin, pointing up
-function petal(x, len, wid, tint, core, soft){
+// One soft petal, base at the origin, pointing up. `tip` runs 0 (pointed, like
+// a bougainvillea bract) to 1 (round, like a marigold floret).
+function petal(x, len, wid, tint, core, soft, tip){
   const g = x.createLinearGradient(0, 0, 0, -len);
   g.addColorStop(0,    core);
   g.addColorStop(0.42, tint);
   g.addColorStop(0.88, hexa(tint, 0.55));
   g.addColorStop(1,    hexa(tint, 0));
   x.fillStyle = g;
-  // Broad and round-tipped. Narrow petals turn the whole head into a star the
-  // moment it is drawn small, which is most of the curtain.
+  const t = tip === undefined ? 1 : tip;
+  const shoulder = 0.80 - 0.34*(1 - t);   // pointed petals narrow sooner
+  const flank    = 0.98 * (0.45 + 0.55*t);
   x.beginPath();
   x.moveTo(0, len*0.10);
-  x.bezierCurveTo( wid*1.05, -len*0.16,  wid*0.98, -len*0.80, 0, -len);
-  x.bezierCurveTo(-wid*0.98, -len*0.80, -wid*1.05, -len*0.16, 0, len*0.10);
+  x.bezierCurveTo( wid*1.05, -len*0.16,  wid*flank, -len*shoulder, 0, -len);
+  x.bezierCurveTo(-wid*flank, -len*shoulder, -wid*1.05, -len*0.16, 0, len*0.10);
   x.closePath();
   x.fill();
   if (soft > 0){                       // a wetter edge, bleeding outward
@@ -514,60 +538,175 @@ function makeSprite(D, kind, st, bright, s){
 
   x.globalAlpha = alpha;
 
-  // the wash the flower sits in — a soft bloom of colour, no edge at all
-  const wash = x.createRadialGradient(0, 0, 0, 0, 0, r*1.08);
-  wash.addColorStop(0,    hexa(warm, 0.46));
-  wash.addColorStop(0.46, hexa(base, 0.30));
-  wash.addColorStop(0.82, hexa(base, 0.12));
-  wash.addColorStop(1,    hexa(base, 0));
-  x.fillStyle = wash;
-  x.beginPath(); x.arc(0, 0, r*1.08, 0, Math.PI*2); x.fill();
+  const sp = st.g;
 
-  // petals. Count carries bundling, rings carry how open the flower is.
-  const n = st.petals;
-  const rings = kind === KIND_BUD ? 1 : kind === KIND_DOUBLE ? 3 : 2;
-  const seed = D*3.7 + n*1.9 + kind*5.3;
-  for (let ring = rings - 1; ring >= 0; ring--){
-    const f = rings === 1 ? 1 : 0.52 + 0.48 * (ring / (rings - 1));
-    const len = r * f * (kind === KIND_BUD ? 0.82 : 1);
-    const wid = len * (0.52 + 0.16 * (1 - f));
-    const spin = ring * (Math.PI / n) + rnd(seed + ring) * 0.5;
-    for (let p = 0; p < n; p++){
-      const jitter = (rnd(seed + ring*13 + p*2.1) - 0.5);
-      const pl = len * (0.88 + jitter*0.20);
+  // A leaf instead of a head: one blade, hanging a little off true, with a
+  // midrib and a few side veins. Quality reads as how full the blade is.
+  if (sp.leaf){
+    const lopen = kind / (KIND_D.length - 1);
+    const L2 = r * (1.42 + 0.30*lopen), Wd = r * (0.50 + 0.26*lopen);
+    x.rotate(-0.30 + rnd(D*5.1) * 0.6);
+    const lg = x.createLinearGradient(-Wd, L2*0.5, Wd, -L2*0.5);
+    lg.addColorStop(0,    mix(core, base, 0.45));
+    lg.addColorStop(0.45, base);
+    lg.addColorStop(1,    mix(base, tint, 0.65));
+    x.fillStyle = lg;
+    x.beginPath();
+    x.moveTo(0, L2*0.5);
+    x.bezierCurveTo( Wd*1.25, L2*0.12,  Wd*0.78, -L2*0.34, 0, -L2*0.5);
+    x.bezierCurveTo(-Wd*0.78, -L2*0.34, -Wd*1.25, L2*0.12, 0, L2*0.5);
+    x.closePath();
+    x.fill();
+
+    x.strokeStyle = hexa(mix(core, base, 0.3), 0.6);
+    x.lineWidth = Math.max(0.3, r*0.055);
+    x.beginPath(); x.moveTo(0, L2*0.46); x.lineTo(0, -L2*0.46); x.stroke();
+    x.strokeStyle = hexa(mix(core, base, 0.4), 0.34);
+    x.lineWidth = Math.max(0.2, r*0.032);
+    for (let i = 1; i <= 4; i++){
+      const yy = L2*0.40 - (L2*0.78) * (i/5), side = i % 2 ? 1 : -1;
+      x.beginPath(); x.moveTo(0, yy);
+      x.quadraticCurveTo(side*Wd*0.5, yy - L2*0.06, side*Wd*0.80, yy - L2*0.15);
+      x.stroke();
+    }
+    const sheen = x.createRadialGradient(-Wd*0.35, -L2*0.20, 0, -Wd*0.35, -L2*0.20, L2*0.60);
+    sheen.addColorStop(0, 'rgba(255,255,236,' + (0.10 + 0.14*st.lit) + ')');
+    sheen.addColorStop(1, 'rgba(255,255,236,0)');
+    x.fillStyle = sheen;
+    x.beginPath(); x.ellipse(0, 0, Wd*1.2, L2*0.6, 0, 0, Math.PI*2); x.fill();
+    return { c: c, ww: cw/s, wh: ch/s };
+  }
+
+  // Base disc. The gaps between florets fall through to this, so it has to be
+  // the darkest thing in the head — that shadow between the petals is what
+  // gives a marigold its depth.
+  // How much of it shows depends on how densely the head covers it. A pompom
+  // buries it; four bracts would leave it sitting there as a dark ball.
+  const discR = r * (sp.style === 'pompom' ? 0.98 : sp.style === 'broad' ? 0.52 : 0.26);
+  const bg2 = x.createRadialGradient(0, 0, 0, 0, 0, discR);
+  bg2.addColorStop(0,   mix(core, base, 0.34));
+  bg2.addColorStop(0.7, mix(core, base, 0.16));
+  bg2.addColorStop(1,   core);
+  x.fillStyle = bg2;
+  x.beginPath(); x.arc(0, 0, discR, 0, Math.PI*2); x.fill();
+
+  const open = kind / (KIND_D.length - 1);
+  const seed = D*3.7 + sp.petals*1.9 + kind*5.3;
+
+  // One floret: a small rounded scallop with its own shadow, body and
+  // highlight. Drawn crisp — a marigold reads as hundreds of distinct little
+  // petals catching light, and feathering the edges destroys exactly that.
+  function floret(px, py, rr, rot, lightness){
+    const body = mix(base, tint, Math.max(0, Math.min(1, lightness)));
+    x.save();
+    x.translate(px, py); x.rotate(rot);
+    // seat shadow, so the floret sits into the ones behind it
+    x.fillStyle = hexa(core, 0.55);
+    x.beginPath();
+    x.ellipse(rr*0.14, rr*0.20, rr*1.04, rr*0.92, 0, 0, Math.PI*2);
+    x.fill();
+    // the petal itself — a fan with a notched top, the way a floret folds
+    const g2 = x.createLinearGradient(0, rr*0.9, 0, -rr*0.9);
+    g2.addColorStop(0, mix(body, core, 0.42));
+    g2.addColorStop(0.55, body);
+    g2.addColorStop(1, mix(body, tint, 0.55));
+    x.fillStyle = g2;
+    x.beginPath();
+    x.moveTo(0, rr*0.95);
+    x.bezierCurveTo( rr*1.05, rr*0.42,  rr*0.92, -rr*0.62, rr*0.30, -rr*0.86);
+    x.quadraticCurveTo(0, -rr*0.56, -rr*0.30, -rr*0.86);
+    x.bezierCurveTo(-rr*0.92, -rr*0.62, -rr*1.05, rr*0.42, 0, rr*0.95);
+    x.closePath();
+    x.fill();
+    // a lit top edge
+    x.fillStyle = hexa(sh(tint, 0.18), 0.5);
+    x.beginPath();
+    x.moveTo(-rr*0.30, -rr*0.84);
+    x.quadraticCurveTo(0, -rr*0.54, rr*0.30, -rr*0.84);
+    x.quadraticCurveTo(0, -rr*0.98, -rr*0.30, -rr*0.84);
+    x.closePath(); x.fill();
+    x.restore();
+  }
+
+  if (sp.style === 'pompom'){
+    // Rings of florets packed from the rim inward, each ring a little smaller
+    // and a little lighter, so the head domes toward the middle.
+    const ringsN = Math.max(2, Math.round(2 + open * (sp.rings - 2)));
+    for (let ring = 0; ring < ringsN; ring++){
+      const t2 = ring / Math.max(1, ringsN - 1);
+      const rad = r * (0.88 - 0.72*t2);
+      const rr  = r * (0.30 - 0.11*t2) * (0.86 + 0.28*open);
+      const cnt = Math.max(4, Math.round(sp.petals * (0.42 + 0.58*(1 - t2))));
+      for (let i = 0; i < cnt; i++){
+        const j = rnd(seed + ring*17.3 + i*2.7) - 0.5;
+        const a2 = (i / cnt) * Math.PI*2 + ring*0.55 + j*0.22;
+        floret(Math.cos(a2)*rad, Math.sin(a2)*rad,
+               rr * (0.86 + 0.28*rnd(seed + ring*5.1 + i*3.3)),
+               a2 + Math.PI/2 + j*0.4,
+               0.08 + t2*0.30 + j*0.12);
+      }
+    }
+    // a tight knot of buds right at the crown
+    for (let i = 0; i < 5; i++){
+      const j = rnd(seed + 91 + i*4.1);
+      const a2 = j * Math.PI*2, rad = r*0.10*j;
+      floret(Math.cos(a2)*rad, Math.sin(a2)*rad, r*0.14, a2, 0.40 + j*0.18);
+    }
+  } else if (sp.style === 'bract'){
+    // Four broad papery bracts, nearly flat, with a visible vein.
+    for (let p = 0; p < sp.petals; p++){
+      const j = rnd(seed + p*3.7) - 0.5;
       x.save();
-      x.rotate(spin + p * (Math.PI*2/n) + jitter * 0.22);
-      // A darker petal laid down slightly wider first. It only shows in the
-      // gaps between the petals on top, which is what separates them — without
-      // it the head fills in and reads as one soft disc.
-      x.globalAlpha = alpha * 0.5;
-      petal(x, pl*0.97, wid*1.16, mix(core, base, 0.34), core, soft*0.5);
-      x.globalAlpha = alpha;
-      // each petal a slightly different mix, the way pigment never repeats
-      const t = 0.26 + jitter*0.22 + ring*0.12;
-      petal(x, pl, wid, mix(base, tint, Math.max(0, Math.min(1, t))),
-            mix(core, base, 0.55), soft);
+      x.rotate(p * (Math.PI*2/sp.petals) + j * sp.ruffle);
+      petal(x, r*(0.98 + j*0.12), r*sp.wid*0.92,
+            mix(base, tint, 0.24 + j*0.18), mix(core, base, 0.42), 0.10, sp.tip);
+      x.strokeStyle = hexa(core, 0.34);
+      x.lineWidth = Math.max(0.25, r*0.035);
+      x.beginPath(); x.moveTo(0, 0); x.lineTo(0, -r*0.86); x.stroke();
       x.restore();
     }
-  }
-
-  // throat: a dry, darker touch where the petals meet
-  const th = x.createRadialGradient(0, 0, 0, 0, 0, r*0.42);
-  th.addColorStop(0,   hexa(mix(core, warm, 0.52), 0.92));
-  th.addColorStop(0.45, hexa(mix(core, base, 0.42), 0.62));
-  th.addColorStop(1,   hexa(core, 0));
-  x.fillStyle = th;
-  x.beginPath(); x.arc(0, 0, r*0.42, 0, Math.PI*2); x.fill();
-
-  // a few stamens on anything properly open
-  if (kind === KIND_FULL || kind === KIND_DOUBLE){
-    x.fillStyle = hexa(sh(st.g.tint, 0.3), 0.55);
-    for (let i = 0; i < 7; i++){
-      const a2 = rnd(seed + i*3.3) * Math.PI*2, rr = r*0.16 + rnd(seed + i*7.1)*r*0.14;
-      x.beginPath(); x.arc(Math.cos(a2)*rr, Math.sin(a2)*rr, Math.max(0.35, r*0.045), 0, Math.PI*2);
+    x.fillStyle = hexa(sh(tint, 0.3), 0.8);
+    for (let i = 0; i < 3; i++){
+      const a2 = i*2.1 + 0.4;
+      x.beginPath();
+      x.arc(Math.cos(a2)*r*0.13, Math.sin(a2)*r*0.13, Math.max(0.4, r*0.08), 0, Math.PI*2);
       x.fill();
     }
+  } else {
+    // Broad overlapping petals, outer rings first, curled toward the middle.
+    const ringsN = Math.max(1, Math.round(1 + open * (sp.rings - 1)));
+    for (let ring = ringsN - 1; ring >= 0; ring--){
+      const f = ringsN === 1 ? 1 : 0.48 + 0.52 * (ring / (ringsN - 1));
+      const len = r * f * (0.94 + 0.06*open);
+      const cnt = Math.max(3, Math.round(sp.petals * (0.55 + 0.45*f)));
+      // Shadows for the whole ring first, then the bodies over them. Drawing
+      // shadow-then-body per petal buried each body under the next shadow and
+      // the head came out as a dark ball.
+      for (let pass = 0; pass < 2; pass++){
+        for (let p = 0; p < cnt; p++){
+          const j = rnd(seed + ring*13 + p*2.1) - 0.5;
+          x.save();
+          x.rotate(ring*0.7 + p * (Math.PI*2/cnt) + j * sp.ruffle);
+          if (pass === 0){
+            // petal() converts from hex, so colours have to arrive as hex
+            petal(x, len*1.00, len*sp.wid*1.08, mix(core, base, 0.30), core, 0, sp.tip);
+          } else {
+            petal(x, len*(0.90 + j*0.12), len*sp.wid*0.94,
+                  mix(base, tint, 0.26 + ring*0.20 + j*0.16), mix(core, base, 0.40), 0.08, sp.tip);
+          }
+          x.restore();
+        }
+      }
+    }
   }
+
+  // throat
+  const er = r * sp.eye;
+  const th = x.createRadialGradient(0, 0, 0, 0, 0, Math.max(0.5, er*1.9));
+  th.addColorStop(0,   hexa(mix(core, warm, 0.52), 0.8));
+  th.addColorStop(1,   hexa(core, 0));
+  x.fillStyle = th;
+  x.beginPath(); x.arc(0, 0, Math.max(0.5, er*1.9), 0, Math.PI*2); x.fill();
 
   // light from the upper left, as a wash rather than a specular
   const lit = x.createRadialGradient(-r*0.34, -r*0.36, 0, -r*0.34, -r*0.36, r*1.05);
@@ -729,8 +868,8 @@ function render(t){
   ctx.fillStyle = '#f4efe4';
   ctx.fillRect(0, 0, cvw, cvh);
 
-  // ---- the carved stone surround ----
-  // The opening, as the cusped edge the stone is carved to.
+  // ---- the carved timber surround ----
+  // The opening, as the cusped edge the door is carved to.
   const EDGE_N = 180;
   // `keep` appends to the current path instead of starting a new one, which is
   // what the even-odd clip for the stone needs.
@@ -752,13 +891,32 @@ function render(t){
   const stoneL = w2x(DOOR.outL), stoneR = w2x(DOOR.outR), stoneT = w2y(DOOR.outT),
         stoneB = w2y(DOOR.floorY);
   if (stoneR > 0 && stoneL < cvw && stoneB > 0 && stoneT < cvh){
-    const stone = ctx.createLinearGradient(stoneL, stoneT, stoneR, stoneB);
-    stone.addColorStop(0,    '#e7dcc6');
-    stone.addColorStop(0.34, '#dfd2b8');
-    stone.addColorStop(0.68, '#d4c5a8');
-    stone.addColorStop(1,    '#c7b698');
-    ctx.fillStyle = stone;
+    // Dark oiled timber, catching the light across the top left.
+    const wood = ctx.createLinearGradient(stoneL, stoneT, stoneR, stoneB);
+    wood.addColorStop(0,    '#6d4a2b');
+    wood.addColorStop(0.30, '#5b3b21');
+    wood.addColorStop(0.62, '#4a2f1a');
+    wood.addColorStop(1,    '#3a2312');
+    ctx.fillStyle = wood;
     ctx.fillRect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
+
+    // long grain running the height of the jambs
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
+    ctx.clip();
+    ctx.globalAlpha = 0.18;
+    const gstep = Math.max(3, 14*z);
+    for (let gx = stoneL; gx < stoneR; gx += gstep){
+      const n = rnd(Math.round(gx/gstep)*2.7);
+      ctx.strokeStyle = n > 0.5 ? 'rgba(176,126,76,0.9)' : 'rgba(30,17,8,0.9)';
+      ctx.lineWidth = Math.max(0.4, (0.4 + n)*z);
+      ctx.beginPath();
+      ctx.moveTo(gx, stoneT);
+      ctx.lineTo(gx + (n - 0.5)*gstep*1.5, stoneB);
+      ctx.stroke();
+    }
+    ctx.restore();
 
     // relief carving, lit from the upper left: a light edge above each motif
     // and a shadow below is all it takes to read as cut stone.
@@ -806,9 +964,9 @@ function render(t){
           const n = rnd(Math.round(x/step)*7.3 + gy*3.1);
           const r = rr * (0.84 + n*0.26), rot = n * Math.PI;
           const sh = Math.max(0.7, r*0.17), hi = Math.max(0.6, r*0.13);
-          rosette(x + sh, y + sh, r, rot, 'rgba(112,88,54,0.22)');
-          rosette(x - hi, y - hi, r, rot, 'rgba(255,250,238,0.30)');
-          rosette(x, y, r, rot, 'rgba(203,185,150,0.34)');
+          rosette(x + sh, y + sh, r, rot, 'rgba(20,11,4,0.34)');
+          rosette(x - hi, y - hi, r, rot, 'rgba(201,150,96,0.26)');
+          rosette(x, y, r, rot, 'rgba(99,65,36,0.26)');
         }
       }
       ctx.restore();
@@ -818,17 +976,31 @@ function render(t){
     const pw = Math.max(2, DOOR.band * 0.42 * z);
     for (const px of [stoneL + bw*0.5, stoneR - bw*0.5]){
       const pg = ctx.createLinearGradient(px - pw/2, 0, px + pw/2, 0);
-      pg.addColorStop(0, 'rgba(120,98,64,0.30)');
-      pg.addColorStop(0.34, 'rgba(255,248,232,0.42)');
-      pg.addColorStop(1, 'rgba(120,98,64,0.34)');
+      pg.addColorStop(0, 'rgba(24,13,5,0.44)');
+      pg.addColorStop(0.34, 'rgba(192,142,90,0.32)');
+      pg.addColorStop(1, 'rgba(24,13,5,0.48)');
       ctx.fillStyle = pg;
       ctx.fillRect(px - pw/2, w2y(DOOR.spring), pw, stoneB - w2y(DOOR.spring));
     }
 
     // outer edge of the whole surround
-    ctx.strokeStyle = 'rgba(118,96,62,0.22)';
+    ctx.strokeStyle = 'rgba(26,14,6,0.42)';
     ctx.lineWidth = Math.max(0.8, 2*z);
     ctx.strokeRect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
+
+    // carved lintel across the head of the door
+    const lintelH = DOOR.band * 0.50 * z;
+    if (lintelH > 4){
+      const lg2 = ctx.createLinearGradient(0, stoneT, 0, stoneT + lintelH);
+      lg2.addColorStop(0, '#7c5531'); lg2.addColorStop(0.5, '#4d3018'); lg2.addColorStop(1, '#6b4626');
+      ctx.fillStyle = lg2;
+      ctx.fillRect(stoneL, stoneT, stoneR - stoneL, lintelH);
+      ctx.strokeStyle = 'rgba(22,12,4,0.5)';
+      ctx.lineWidth = Math.max(0.6, 1.6*z);
+      ctx.beginPath(); ctx.moveTo(stoneL, stoneT + lintelH); ctx.lineTo(stoneR, stoneT + lintelH); ctx.stroke();
+      ctx.strokeStyle = 'rgba(206,156,102,0.26)';
+      ctx.beginPath(); ctx.moveTo(stoneL, stoneT + lintelH*0.80); ctx.lineTo(stoneR, stoneT + lintelH*0.80); ctx.stroke();
+    }
   }
 
   // ---- the opening, with daylight behind it ----
@@ -960,11 +1132,11 @@ function render(t){
 
   // stone lip, outside the timber
   const lip = ctx.createLinearGradient(l - mw, 0, rgt + mw, 0);
-  lip.addColorStop(0,    '#b9a582');
-  lip.addColorStop(0.22, '#efe4ca');
-  lip.addColorStop(0.5,  '#d6c6a4');
-  lip.addColorStop(0.78, '#e8dcc0');
-  lip.addColorStop(1,    '#ab9674');
+  lip.addColorStop(0,    '#5a3a1f');
+  lip.addColorStop(0.22, '#ad7d4b');
+  lip.addColorStop(0.5,  '#79512f');
+  lip.addColorStop(0.78, '#a37546');
+  lip.addColorStop(1,    '#4c2f17');
   ctx.strokeStyle = lip;
   ctx.lineWidth = mw;
   openingPath(DOOR.wood + DOOR.mould); ctx.stroke();
@@ -1366,9 +1538,10 @@ function buildLegend(){
   // how open — one rolled-up reading of the prompt
   const tiers = [0,0,0,0];
   for (const b of beads) tiers[b.kind]++;
+  // shown on the marigold: openness barely reads on a leaf
   legendEl.appendChild(group('How open · overall quality of the prompt',
     KIND_NAMES.map((lab, k) =>
-      item(Object.assign({}, plain, { kind:k, D:KIND_D[k] }),
+      item({ phase:1, kind:k, D:KIND_D[k] },
            lab, QUALITY_NAMES[k] + ' · ' + nf.format(tiers[k])))));
 
   document.getElementById('subkey').innerHTML =

@@ -8,8 +8,8 @@ prompts are not drawn: 21 of them, 107 prompts, 4.5% of the total. They hung as 
 one to nine flowers and read as fraying rather than as sessions, and each still took a
 full garland's width. `MIN_BEADS` in `index.html` is the threshold.
 
-Nothing here is a photograph or a texture file. Every flower, and the stone and timber
-around them, is drawn procedurally into a canvas each frame.
+Nothing here is a photograph or a texture file. Every flower, and the carved timber around
+them, is drawn procedurally into a canvas each frame.
 
 ## Files
 
@@ -41,8 +41,16 @@ head is says how good the prompt was, as one rolled-up reading.
 
 | Drawn | Encoding |
 |---|---|
-| Which flower | phase — cornflower UI, marigold Setup, vermilion Bugs, bougainvillea UX |
+| Which flower | phase — **leaf** UI, **marigold** Setup, **rose** Bugs, **bougainvillea** UX |
 | How open | overall quality — tight bud (rough), half-open (mixed), full bloom (solid), wide open (sharp) |
+
+Four different species, not four tints of one, so they can be told apart by shape as well
+as colour — which matters once the heads are small.
+
+UI is the leaf. It is 63% of the data, and in a real garland the green is what there is
+most of; marigolds are strung through it, not the other way round. Making the dominant
+phase the quiet element is also what keeps the curtain from shouting — the colour lands on
+the three phases you actually want to pick out.
 
 Everything else is in the panel on the right and nowhere on the flower.
 
@@ -70,20 +78,29 @@ re-checking if the labels ever change.
 the panel.
 
 The key under the piece shows a painted swatch for each of the eight things that are drawn,
-rendered with the same code as the curtain, so it cannot drift from what is on screen.
+rendered with the same code as the curtain, so it cannot drift from what is on screen. The
+openness row is shown on the marigold — openness barely reads on a leaf.
 
 ## How a flower is painted
 
-Nothing is outlined. Each head is laid down the way a brush would:
+Each head starts on a dark base disc. The gaps between the petals fall through to it, and
+that shadow underneath is what gives a flower its depth. How much of the disc shows depends
+on how densely the head covers it — a marigold buries it, four bracts would leave it
+sitting there as a dark ball.
 
-1. a loose wash of colour, with no edge at all
-2. for each petal, a darker, slightly wider petal first — it only shows in the gaps
-   between the petals on top, and it is what stops the head filling in and reading as one
-   soft disc
-3. the petal itself, every one a slightly different mix, because pigment never repeats
-4. a dry darker touch at the throat, and stamens on anything properly open
+Then the head is built according to its species:
 
-Edges are feathered by drawing the same shape again at a widening scale and falling alpha.
+- **pompom** (marigold) — rings of small florets packed from the rim inward, each ring a
+  little smaller and lighter so the head domes toward the middle, then a tight knot of buds
+  at the crown. Every floret gets its own seat shadow, body and lit top edge. These are
+  drawn **crisp**: a marigold reads as hundreds of distinct little petals catching light,
+  and feathering the edges destroys exactly that.
+- **broad** (rose) — overlapping petals, outer rings first. All the shadows for a ring go
+  down before any of the bodies; shadow-then-body per petal buries each body under the next
+  petal's shadow and the head comes out black.
+- **bract** (bougainvillea) — three broad papery bracts with a visible vein.
+- **leaf** — one blade off true, with a midrib and side veins.
+
 Over the whole frame goes a tooth of paper grain, composited `soft-light`, which is what
 stops the gradients beneath reading as vector art.
 
@@ -92,7 +109,7 @@ entries to 43 — four flowers times four degrees of openness times the zoom ste
 
 ## The doorway
 
-The curtain hangs in a cusped stone doorway with daylight behind it. There is no wall or
+The curtain hangs in a cusped doorway of dark carved timber, with daylight behind it. There is no wall or
 floor drawn around it — the page shows through, so the doorway reads as one object on
 paper rather than as a room. Everything that hangs is clipped to the opening, so a
 swinging strand cannot stray outside it. There is no hinged door: the curtain *is* what
@@ -103,13 +120,15 @@ middle, the two meeting in a point at the crown. The rise has to exceed the half
 the centres fall inside and it rounds off into a dome instead of coming to a point. Five
 foils are cut into each half, bulging inward between sharp cusps.
 
-Working outward from the opening: a dark timber frame lining it, then a pale stone lip,
-then a band of carved rosettes, then a pilaster down each jamb. Each layer is a stroke
-along the arch profile, offset further out than the last — strokes are centred on the
-path, so a width of 2w reaches w either side, and `DOOR.stoneOff` is where the stonework
-has to start to clear the timber.
+Working outward from the opening: a timber bead lining it, then a moulded lip, then a band
+of carved rosettes, then a post down each jamb, with a carved lintel across the head.
+It is all one dark oiled wood, with the grain running the height of the jambs.
+
+Each layer is a stroke along the arch profile, offset further out than the last — strokes
+are centred on the path, so a width of 2w reaches w either side, and `DOOR.stoneOff` is
+where the outer carving has to start to clear the bead.
 The carving is deliberately small and low in contrast — at the opening zoom it should read
-as texture, and only resolve into flowers when you zoom in. Relief is faked the way a
+as texture, and only resolve into rosettes when you zoom in. Relief is faked the way a
 carver reads it, a shadow cast down-right and a highlight up-left, with the offsets floored
 at about a pixel so it does not flatten out when zoomed away.
 
