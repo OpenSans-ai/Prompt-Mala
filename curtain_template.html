@@ -220,7 +220,12 @@ const QUALITY_NAMES = ['rough','mixed','solid','sharp'];
 // A better prompt is a bigger flower, and that is the only thing size says.
 // The form of each species no longer changes with it — a marigold is always a
 // marigold, just larger or smaller.
-const KIND_D = [13, 19, 26, 34];
+//
+// These are deliberately wider than STRAND_GAP, so neighbouring garlands
+// overlap and the curtain reads as a thick mass of flowers rather than rows of
+// dots. The whole door has to stay in frame, so this is the only lever on how
+// big a flower looks: cropping the door is not allowed to buy it.
+const KIND_D = [21, 31, 43, 57];
 
 // Weights: specificity is the strongest single signal of whether a prompt could
 // be acted on alone, so it carries most. Grounding counts upward — pointing at
@@ -236,9 +241,7 @@ function qualityTier(q){ return q < 0.46 ? 0 : q < 0.60 ? 1 : q < 0.74 ? 2 : 3; 
 function beadGap(g){ return g < 0 ? 0 : 1.5 + 8 * (1 - Math.exp(-g / 1000)); }
 // widest bloom, for layout and hit testing
 const D_WIDEST = KIND_D[KIND_D.length - 1];
-// how many pixels across the largest flower should be. This is what sets the
-// zoom now, rather than the zoom setting the flower size.
-const FLOWER_PX = 15;
+
 
 function rnd(seed){ let x = Math.sin(seed * 12.9898) * 43758.5453; return x - Math.floor(x); }
 
@@ -800,17 +803,13 @@ function resize(){
   // garlands with it — whatever the door's width gives is what the flowers
   // are. The curtain is taller than the frame, so the longest garlands run off
   // the bottom; that is accepted rather than fought.
-  // The door is a tall portrait painting and the stage is usually wide. Fitting
-  // the whole of it in drops a flower to a pixel or two, so instead the scale
-  // is driven by how big a flower needs to be to read, capped so the door never
-  // runs wider than the stage. The view is anchored to the top of the painting:
-  // you get the carved head, the arch and the garlands, and the empty corridor
-  // floor at the bottom is what falls out of frame.
-  const wantZ = FLOWER_PX / D_WIDEST;
-  cam.z = Math.min(cvw / VIEW.w, wantZ);
+  // The whole door is in frame, contained rather than cropped, with a little
+  // air around it. Flower size is not bought by cropping the door — it is set
+  // in world units instead, by KIND_D.
+  cam.z = Math.min(cvw / VIEW.w, cvh / VIEW.h) * 0.97;
   minZ = cam.z;
   cam.x = (VIEW.l + VIEW.r) / 2;
-  cam.y = VIEW.t + (cvh / cam.z) / 2;
+  cam.y = (VIEW.t + VIEW.b) / 2;
   draw();
 }
 function fit(){ resize(); }

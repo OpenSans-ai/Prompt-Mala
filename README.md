@@ -140,16 +140,29 @@ clip, so nothing strays onto the carving.
 A garland longer than the door is cut at the bottom of the image. That is accepted rather
 than fought.
 
+### How big a flower can be
+
+The door is contained, never cropped, so its scale is fixed by the stage. That leaves
+`KIND_D` as the only lever on how big a flower looks, and there is a hard limit behind it:
+57 garlands have to fit across the opening. On a 1300×860 stage the door lands at 448px
+wide, the opening at about 260px, and each garland gets 4.6px of it.
+
+`KIND_D` is deliberately set wider than `STRAND_GAP` — the largest head is 2.1× the pitch —
+so neighbouring garlands overlap and the curtain reads as a thick mass of flowers rather
+than rows of dots. That is also how a real garland looks. Pushing it further keeps making
+the flowers bigger, at the cost of being able to follow any single garland down.
+
+The other lever is fewer garlands: raising `MIN_BEADS` drops more short sessions and gives
+every remaining one more room.
+
 ## Interaction
 
 The piece hangs on the left; a reading of one flower sits on the right.
 
 - **Drag** across the garlands — they sway and rustle softly. Dragging moves the flowers,
   not the view.
-- **There is no zoom and no pan.** The door holds still, the way a doorway does. The scale
-  is set by how big a flower has to be to read — `FLOWER_PX` — capped so the door never runs
-  wider than the stage, and anchored to the top of the painting. You get the carved head,
-  the arch and the garlands; the empty corridor floor is what falls out of frame.
+- **There is no zoom and no pan.** The door holds still, the way a doorway does, and the
+  whole of it stays in frame with a little air around it.
 - **Hover** a flower and the side panel reads it straight away — specificity as the
   headline, then the analysis, then the context. A small label follows the pointer too.
 - **Click** to pin a flower, so the panel holds it when the pointer moves off. Previous/Next
