@@ -83,6 +83,12 @@ openness row is shown on the marigold — openness barely reads on a leaf.
 
 ## How a flower is painted
 
+The flowers are seen **from the side**, not looked down into. That is almost entirely a
+matter of light: a head lit from its own centre reads as being viewed from above, so
+instead the light comes down the top and the shadow gathers underneath, and a green calyx
+peeks out at the base. There is no bright eye in the middle — that one detail was what made
+every flower look like a specimen pinned flat.
+
 Each head starts on a dark base disc. The gaps between the petals fall through to it, and
 that shadow underneath is what gives a flower its depth. How much of the disc shows depends
 on how densely the head covers it — a marigold buries it, four bracts would leave it
@@ -90,11 +96,12 @@ sitting there as a dark ball.
 
 Then the head is built according to its species:
 
-- **pompom** (marigold) — rings of small florets packed from the rim inward, each ring a
-  little smaller and lighter so the head domes toward the middle, then a tight knot of buds
-  at the crown. Every floret gets its own seat shadow, body and lit top edge. These are
-  drawn **crisp**: a marigold reads as hundreds of distinct little petals catching light,
-  and feathering the edges destroys exactly that.
+- **pompom** (marigold) — a ball of florets. Rings still run rim to middle so the packing
+  stays dense, but nothing is lit by its distance from the centre: brightness comes from
+  how high up the face a floret sits, which is what turns a flat rosette into a sphere.
+  Every floret gets its own seat shadow, body and lit top edge. These are drawn **crisp** —
+  a marigold reads as hundreds of distinct little petals catching light, and feathering the
+  edges destroys exactly that.
 - **broad** (rose) — overlapping petals, outer rings first. All the shadows for a ring go
   down before any of the bodies; shadow-then-body per petal buries each body under the next
   petal's shadow and the head comes out black.
@@ -120,9 +127,16 @@ middle, the two meeting in a point at the crown. The rise has to exceed the half
 the centres fall inside and it rounds off into a dome instead of coming to a point. Five
 foils are cut into each half, bulging inward between sharp cusps.
 
-Working outward from the opening: a timber bead lining it, then a moulded lip, then a band
-of carved rosettes, then a post down each jamb, with a carved lintel across the head.
-It is all one dark oiled wood, with the grain running the height of the jambs.
+Working outward from the opening: a timber bead lining it, then a moulded lip, then three
+stepped reveals falling back toward the opening, then a band of carved rosettes, then a
+post down each jamb. It is all one dark oiled wood, with the grain running the height of
+the jambs.
+
+The head is taller than the sides, as a real door's is: above the arch sits a sunk frieze
+with a running scroll carved along it, and over that a cornice standing proud of the frame
+and casting its shadow down. A branch leans in over the top corner. That one carries no
+data at all — it is there because without it the head of the door reads as a bare
+rectangle.
 
 Each layer is a stroke along the arch profile, offset further out than the last — strokes
 are centred on the path, so a width of 2w reaches w either side, and `DOOR.stoneOff` is

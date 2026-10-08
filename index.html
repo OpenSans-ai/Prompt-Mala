@@ -391,16 +391,20 @@ const DOOR = Object.assign({}, ARCH, {
   band:  Math.min(ARCH.openW * 0.165, 210),  // carved band outside that
   floorY: worldH + 46                        // jambs run just past the longest strand
 });
-// how far the stonework stands off the opening edge
+// how far the carving stands off the opening edge
 DOOR.stoneOff = DOOR.wood + DOOR.mould * 2;
 DOOR.outL = DOOR.inL - DOOR.stoneOff - DOOR.band;
 DOOR.outR = DOOR.inR + DOOR.stoneOff + DOOR.band;
-DOOR.outT = DOOR.topY - DOOR.stoneOff - DOOR.band;
+// The head of the door is taller than the sides: above the arch sits a carved
+// frieze and then a cornice standing proud of the frame.
+DOOR.header = DOOR.band * 1.05;
+DOOR.cornice = DOOR.band * 0.34;
+DOOR.outT = DOOR.topY - DOOR.stoneOff - DOOR.band - DOOR.header;
 
 const VIEW = (() => {
   const air = 30;
-  return { l: DOOR.outL - air, r: DOOR.outR + air,
-           t: DOOR.outT - air, b: DOOR.floorY + air };
+  return { l: DOOR.outL - DOOR.cornice - air, r: DOOR.outR + DOOR.cornice + air,
+           t: DOOR.outT - DOOR.cornice - air, b: DOOR.floorY + air };
 })();
 VIEW.w = VIEW.r - VIEW.l; VIEW.h = VIEW.b - VIEW.t;
 VIEW.cx = (VIEW.l + VIEW.r)/2; VIEW.cy = (VIEW.t + VIEW.b)/2;
@@ -585,12 +589,33 @@ function makeSprite(D, kind, st, bright, s){
   // How much of it shows depends on how densely the head covers it. A pompom
   // buries it; four bracts would leave it sitting there as a dark ball.
   const discR = r * (sp.style === 'pompom' ? 0.98 : sp.style === 'broad' ? 0.52 : 0.26);
-  const bg2 = x.createRadialGradient(0, 0, 0, 0, 0, discR);
-  bg2.addColorStop(0,   mix(core, base, 0.34));
-  bg2.addColorStop(0.7, mix(core, base, 0.16));
+  // Lit from above, not from the middle out. A head lit from its centre reads
+  // as being looked down into; these hang in a doorway and are seen side on.
+  const bg2 = x.createRadialGradient(0, -discR*0.45, 0, 0, 0, discR*1.25);
+  bg2.addColorStop(0,   mix(core, base, 0.40));
+  bg2.addColorStop(0.6, mix(core, base, 0.18));
   bg2.addColorStop(1,   core);
   x.fillStyle = bg2;
   x.beginPath(); x.arc(0, 0, discR, 0, Math.PI*2); x.fill();
+
+  // Green calyx at the base, peeking out from under the head — the giveaway
+  // that you are looking at the side of a flower and not into its face.
+  if (!sp.leaf){
+    // Sized off the head, not off the sprite: a bract head covers very little,
+    // and a calyx cut to the full radius hangs out below it as a dark blob.
+    const cw2 = Math.max(discR, r*0.45) * 0.42, cy0 = r*0.74, cy1 = r*0.99;
+    const cal = x.createLinearGradient(0, cy0, 0, cy1);
+    cal.addColorStop(0,   'rgba(96,126,62,0)');
+    cal.addColorStop(0.5, 'rgba(92,122,58,0.70)');
+    cal.addColorStop(1,   'rgba(62,88,40,0.78)');
+    x.fillStyle = cal;
+    x.beginPath();
+    x.moveTo(-cw2, cy0);
+    x.quadraticCurveTo(-cw2*0.86, cy1, 0, cy1);
+    x.quadraticCurveTo( cw2*0.86, cy1, cw2, cy0);
+    x.quadraticCurveTo(0, cy0 + (cy1-cy0)*0.45, -cw2, cy0);
+    x.closePath(); x.fill();
+  }
 
   const open = kind / (KIND_D.length - 1);
   const seed = D*3.7 + sp.petals*1.9 + kind*5.3;
@@ -631,28 +656,27 @@ function makeSprite(D, kind, st, bright, s){
   }
 
   if (sp.style === 'pompom'){
-    // Rings of florets packed from the rim inward, each ring a little smaller
-    // and a little lighter, so the head domes toward the middle.
+    // A ball of florets seen from the side. Rings still run rim to middle so
+    // the packing stays dense, but nothing is lit by its distance from the
+    // centre — brightness comes from how high up the face a floret sits, which
+    // is what turns a flat rosette into a sphere.
     const ringsN = Math.max(2, Math.round(2 + open * (sp.rings - 2)));
     for (let ring = 0; ring < ringsN; ring++){
       const t2 = ring / Math.max(1, ringsN - 1);
-      const rad = r * (0.88 - 0.72*t2);
-      const rr  = r * (0.30 - 0.11*t2) * (0.86 + 0.28*open);
+      const rad = r * (0.86 - 0.70*t2);
+      const rr  = r * (0.30 - 0.10*t2) * (0.86 + 0.28*open);
       const cnt = Math.max(4, Math.round(sp.petals * (0.42 + 0.58*(1 - t2))));
       for (let i = 0; i < cnt; i++){
         const j = rnd(seed + ring*17.3 + i*2.7) - 0.5;
         const a2 = (i / cnt) * Math.PI*2 + ring*0.55 + j*0.22;
-        floret(Math.cos(a2)*rad, Math.sin(a2)*rad,
+        const px = Math.cos(a2)*rad, py = Math.sin(a2)*rad * 0.94;
+        // high on the head catches the light, low on it falls into shadow
+        const lift = -py / r;
+        floret(px, py,
                rr * (0.86 + 0.28*rnd(seed + ring*5.1 + i*3.3)),
                a2 + Math.PI/2 + j*0.4,
-               0.08 + t2*0.30 + j*0.12);
+               0.30 + lift*0.46 + j*0.10);
       }
-    }
-    // a tight knot of buds right at the crown
-    for (let i = 0; i < 5; i++){
-      const j = rnd(seed + 91 + i*4.1);
-      const a2 = j * Math.PI*2, rad = r*0.10*j;
-      floret(Math.cos(a2)*rad, Math.sin(a2)*rad, r*0.14, a2, 0.40 + j*0.18);
     }
   } else if (sp.style === 'bract'){
     // Four broad papery bracts, nearly flat, with a visible vein.
@@ -702,13 +726,19 @@ function makeSprite(D, kind, st, bright, s){
     }
   }
 
-  // throat
-  const er = r * sp.eye;
-  const th = x.createRadialGradient(0, 0, 0, 0, 0, Math.max(0.5, er*1.9));
-  th.addColorStop(0,   hexa(mix(core, warm, 0.52), 0.8));
-  th.addColorStop(1,   hexa(core, 0));
-  x.fillStyle = th;
-  x.beginPath(); x.arc(0, 0, Math.max(0.5, er*1.9), 0, Math.PI*2); x.fill();
+  // Dome shading over the finished head: light down the top, shadow gathering
+  // underneath. This replaces the old throat, which put a bright eye in the
+  // middle and made every flower look like it was being viewed from above.
+  x.save();
+  x.beginPath(); x.arc(0, 0, r*1.02, 0, Math.PI*2); x.clip();
+  const dome = x.createLinearGradient(0, -r, 0, r);
+  dome.addColorStop(0,    'rgba(255,248,224,0.30)');
+  dome.addColorStop(0.42, 'rgba(255,248,224,0)');
+  dome.addColorStop(0.70, hexa(core, 0.12));
+  dome.addColorStop(1,    hexa(core, 0.40));
+  x.fillStyle = dome;
+  x.fillRect(-r, -r, r*2, r*2);
+  x.restore();
 
   // light from the upper left, as a wash rather than a specular
   const lit = x.createRadialGradient(-r*0.34, -r*0.36, 0, -r*0.34, -r*0.36, r*1.05);
@@ -990,18 +1020,57 @@ function render(t){
     ctx.lineWidth = Math.max(0.8, 2*z);
     ctx.strokeRect(stoneL, stoneT, stoneR - stoneL, stoneB - stoneT);
 
-    // carved lintel across the head of the door
-    const lintelH = DOOR.band * 0.50 * z;
-    if (lintelH > 4){
-      const lg2 = ctx.createLinearGradient(0, stoneT, 0, stoneT + lintelH);
-      lg2.addColorStop(0, '#7c5531'); lg2.addColorStop(0.5, '#4d3018'); lg2.addColorStop(1, '#6b4626');
-      ctx.fillStyle = lg2;
-      ctx.fillRect(stoneL, stoneT, stoneR - stoneL, lintelH);
-      ctx.strokeStyle = 'rgba(22,12,4,0.5)';
+    // ---- the head of the door: frieze, then a cornice standing proud ----
+    const corH = DOOR.cornice * z, friezeH = DOOR.header * z;
+    if (friezeH > 5){
+      const fy0 = stoneT, fy1 = stoneT + friezeH;
+      // sunk frieze, a touch darker than the jambs so it reads as set back
+      const fg = ctx.createLinearGradient(0, fy0, 0, fy1);
+      fg.addColorStop(0, '#53351c'); fg.addColorStop(0.5, '#3f2714'); fg.addColorStop(1, '#4a2f19');
+      ctx.fillStyle = fg;
+      ctx.fillRect(stoneL, fy0, stoneR - stoneL, friezeH);
+
+      // a running scroll along it — alternating hooks, the way a carved
+      // frieze repeats rather than scattering motifs
+      const stepF = Math.max(8, DOOR.band * 0.30 * z);
+      if (stepF > 9){
+        ctx.save();
+        ctx.beginPath(); ctx.rect(stoneL, fy0, stoneR - stoneL, friezeH); ctx.clip();
+        const midF = (fy0 + fy1)/2, amp = friezeH*0.26;
+        for (let pass = 0; pass < 2; pass++){
+          ctx.strokeStyle = pass ? 'rgba(199,148,95,0.34)' : 'rgba(20,11,4,0.42)';
+          ctx.lineWidth = Math.max(0.6, friezeH*0.085);
+          const off = pass ? -friezeH*0.055 : friezeH*0.055;
+          ctx.beginPath();
+          for (let fx = stoneL; fx < stoneR + stepF; fx += stepF){
+            ctx.moveTo(fx, midF + off);
+            ctx.bezierCurveTo(fx + stepF*0.24, midF - amp + off,
+                              fx + stepF*0.76, midF + amp + off,
+                              fx + stepF, midF + off);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      ctx.strokeStyle = 'rgba(18,10,3,0.55)';
       ctx.lineWidth = Math.max(0.6, 1.6*z);
-      ctx.beginPath(); ctx.moveTo(stoneL, stoneT + lintelH); ctx.lineTo(stoneR, stoneT + lintelH); ctx.stroke();
-      ctx.strokeStyle = 'rgba(206,156,102,0.26)';
-      ctx.beginPath(); ctx.moveTo(stoneL, stoneT + lintelH*0.80); ctx.lineTo(stoneR, stoneT + lintelH*0.80); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(stoneL, fy1); ctx.lineTo(stoneR, fy1); ctx.stroke();
+      ctx.strokeStyle = 'rgba(206,156,102,0.22)';
+      ctx.beginPath(); ctx.moveTo(stoneL, fy1 + Math.max(1, 2*z)); ctx.lineTo(stoneR, fy1 + Math.max(1, 2*z)); ctx.stroke();
+    }
+
+    // cornice: wider than the frame, with its shadow cast down onto the frieze
+    if (corH > 3){
+      const cl = stoneL - DOOR.cornice*z, cr = stoneR + DOOR.cornice*z;
+      ctx.fillStyle = 'rgba(16,9,3,0.34)';
+      ctx.fillRect(cl, stoneT, cr - cl, Math.max(1.5, corH*0.30));
+      const cg = ctx.createLinearGradient(0, stoneT - corH, 0, stoneT);
+      cg.addColorStop(0, '#8a6038'); cg.addColorStop(0.55, '#5e3d21'); cg.addColorStop(1, '#45290f');
+      ctx.fillStyle = cg;
+      ctx.fillRect(cl, stoneT - corH, cr - cl, corH);
+      ctx.strokeStyle = 'rgba(214,166,112,0.30)';
+      ctx.lineWidth = Math.max(0.5, 1.2*z);
+      ctx.beginPath(); ctx.moveTo(cl, stoneT - corH); ctx.lineTo(cr, stoneT - corH); ctx.stroke();
     }
   }
 
@@ -1143,6 +1212,20 @@ function render(t){
   ctx.lineWidth = mw;
   openingPath(DOOR.wood + DOOR.mould); ctx.stroke();
 
+  // Stepped reveals. The reference frame is not one flat band but a series of
+  // steps falling back toward the opening, each catching light on its top edge
+  // and throwing a line of shadow on the one below.
+  const steps = 3;
+  for (let i = 0; i < steps; i++){
+    const off = DOOR.wood + DOOR.mould*2 + (DOOR.band * (0.16 + i*0.26));
+    ctx.strokeStyle = 'rgba(18,10,3,0.40)';
+    ctx.lineWidth = Math.max(0.5, 2.0*z);
+    openingPath(off); ctx.stroke();
+    ctx.strokeStyle = 'rgba(202,152,98,0.26)';
+    ctx.lineWidth = Math.max(0.4, 1.2*z);
+    openingPath(off + DOOR.mould*0.34); ctx.stroke();
+  }
+
   // dark timber frame, lining the opening itself
   const tim = ctx.createLinearGradient(l - ww, 0, rgt + ww, 0);
   tim.addColorStop(0,    '#3b2617');
@@ -1176,6 +1259,53 @@ function render(t){
   }
   ctx.globalAlpha = 1;
   ctx.restore();
+
+  // ---- a branch leaning in over the top corner ----
+  // Purely scene: it carries no data. It is what stops the head of the door
+  // reading as a bare rectangle.
+  {
+    const bx = w2x(DOOR.outR + DOOR.cornice*0.6), by = w2y(DOOR.outT - DOOR.cornice*0.4);
+    const reach = DOOR.band * 2.6 * z;
+    if (reach > 12 && bx > -reach && bx - reach < cvw && by < cvh + reach){
+      ctx.save();
+      ctx.translate(bx, by);
+      for (let b2 = 0; b2 < 3; b2++){
+        const a0 = Math.PI * (0.80 + b2*0.085);          // sweeping down and left
+        const len = reach * (0.72 + 0.28*rnd(b2*3.1));
+        ctx.save();
+        ctx.rotate(a0);
+        ctx.strokeStyle = 'rgba(72,92,46,0.75)';
+        ctx.lineWidth = Math.max(0.6, 2.2*z);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(len*0.5, -len*0.16, len, len*0.12);
+        ctx.stroke();
+        const n2 = Math.max(4, Math.round(len / Math.max(6, 13*z)));
+        for (let i = 1; i <= n2; i++){
+          const t2 = i/n2;
+          const px = len*t2, py = -len*0.16*2*t2*(1-t2) + len*0.12*t2*t2;
+          for (const side of [-1, 1]){
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(side * (0.75 + rnd(b2*7 + i)*0.3));
+            const ll = Math.max(2, (9 + rnd(b2*5+i)*5) * z), lw = ll*0.34;
+            const lgd = ctx.createLinearGradient(0, 0, 0, -ll);
+            lgd.addColorStop(0, 'rgba(66,92,40,0.9)');
+            lgd.addColorStop(1, 'rgba(126,158,76,0.85)');
+            ctx.fillStyle = lgd;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo( lw, -ll*0.45, 0, -ll);
+            ctx.quadraticCurveTo(-lw, -ll*0.45, 0, 0);
+            ctx.closePath(); ctx.fill();
+            ctx.restore();
+          }
+        }
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+  }
 
   // ---- the tooth of the paper, over everything ----
   if (!grainFill) grainFill = ctx.createPattern(GRAIN, 'repeat');
