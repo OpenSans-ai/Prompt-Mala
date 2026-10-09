@@ -11,8 +11,10 @@ full garland's width. `MIN_BEADS` in `index.html` is the threshold.
 The doorway is a painting, `public/door.png`. Everything hanging in it — every flower, leaf
 and thread — is drawn procedurally into a canvas each frame.
 
-**`index.html` is no longer self-contained.** It needs `public/door.png` and
-`public/indian-ghungroo-shaker-low.wav` beside it. Opened
+The masthead title is a painting too, `public/logo.webp`.
+
+**`index.html` is no longer self-contained.** It needs `public/door.png`,
+`public/logo.webp` and `public/indian-ghungroo-shaker-low.wav` beside it. Opened
 on its own the curtain still draws, but against bare paper with no doorway; the console
 says so. This is a change from how the piece used to work, and it is the cost of using a
 painted door rather than a drawn one.
@@ -21,9 +23,14 @@ painted door rather than a drawn one.
 
 | Path | Publish? | What it is |
 |---|---|---|
-| `index.html` | yes | The piece. Needs `public/door.png` alongside it. |
+| `index.html` | yes | The piece. Needs `public/` alongside it. |
 | `public/door.png` | yes | The painted doorway, 919×1711. 2.2MB. |
 | `public/indian-ghungroo-shaker-low.wav` | yes | The ghungru. 163KB, 0.92s. Loaded on first interaction. |
+| `public/logo.webp` | yes | The masthead lockup, 640×389 on transparency. 38KB. |
+| `public/icon-32.png`, `-180`, `-512` | yes | Favicon, apple-touch icon, and the large one. The P on paper. |
+| `public/og.png` | yes | The social card, 1200×630. |
+| `public/logo-source.webp` | yes | The lockup as painted, on its cream ground, 1536×1024. Source for the four above. |
+| `logo_assets.py` | — | Derives those four from the source. |
 | `public/data/beads.json` | yes | The labelled data as a separate artifact. Labels, numbers and timestamps only. |
 | `private/labeled_prompts_full.json` | **no** | Same records **with the prompt text**. Working file, git-ignored. |
 
@@ -306,6 +313,28 @@ for the new payload.
 **Edit the template, not `index.html`.** They are the same file apart from those three
 lines, so a change made only to `index.html` is silently discarded the next time the
 data is re-injected.
+
+### The logo
+
+`public/logo-source.webp` is the lockup as painted, on a cream ground a shade darker than
+the site's paper. Dropped into the masthead as it is, that ground reads as a box around
+the title, so `logo_assets.py` divides it back out: the lockup is ink on paper, so how far
+a pixel falls below the paper colour is how much ink is there, and that becomes the alpha
+channel. The result is trimmed to the artwork and written out as `logo.webp`, the three
+icons and the social card.
+
+    python3 logo_assets.py
+
+It is the one script here that is not stdlib-only: it wants Pillow and NumPy. Nothing
+else in the repo does, and the assets are checked in, so there is no need to run it
+unless the artwork changes.
+
+Composited over the ground it came from, the transparent version reproduces the source
+exactly. It is not meant for dark backgrounds — the pale flowers in the lockup are pale
+*ink*, and they go dark if you put them on ink.
+
+`og:image` is a relative path, which most scrapers resolve against the page. Strict ones
+want it absolute; set the deployed URL in both HTML files if the social card matters.
 
 ## Caveats
 

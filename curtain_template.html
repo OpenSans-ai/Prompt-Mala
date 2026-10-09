@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Prompt Mala</title>
+<link rel="icon" type="image/png" sizes="32x32" href="public/icon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="public/icon-512.png">
+<link rel="apple-touch-icon" href="public/icon-180.png">
+<meta name="description" content="2,297 prompts across 57 sessions, hung as painted garlands in a carved doorway. Every flower is one prompt.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Prompt Mala">
+<meta property="og:description" content="2,297 prompts across 57 sessions, hung as painted garlands in a carved doorway. Every flower is one prompt.">
+<!-- Relative, so it resolves against wherever the piece is served from. Strict
+     scrapers want this absolute; put the deployed URL here if the card matters. -->
+<meta property="og:image" content="public/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root{
     --paper:#f4efe4;
@@ -38,11 +49,25 @@
   }
 
   /* ---- masthead ---- */
-  #mast{flex:0 0 auto; padding-bottom:9px; border-bottom:1px solid var(--rule-firm);}
-  #mast h1{margin:0; font-size:clamp(25px, 4.2vw, 37px); font-weight:640;
-    letter-spacing:-0.033em; line-height:0.96;}
-  #mast .stand{margin:7px 0 0; max-width:52ch; font-size:12.5px; line-height:1.4; color:var(--ink-2);}
+  /* The title is the painted lockup, public/logo.webp, not type. It sits on the
+     page rather than in a box of its own: the paper it was painted on has been
+     divided back out into an alpha channel, so what is left is the ink. The
+     lockup is wide, so it stands beside the standfirst instead of over it and
+     costs the piece almost no height. See logo_assets.py. */
+  #mast{flex:0 0 auto; padding-bottom:9px; border-bottom:1px solid var(--rule-firm);
+    display:flex; align-items:flex-end; gap:clamp(14px, 2.6vw, 30px);}
+  #mast h1{margin:0; flex:0 0 auto; line-height:0;}
+  #mast h1 img{display:block; width:clamp(152px, 19vw, 232px); height:auto;}
+  #mast .blurb{flex:1 1 auto; min-width:0; padding-bottom:3px;}
+  #mast .stand{margin:0; max-width:52ch; font-size:12.5px; line-height:1.4; color:var(--ink-2);}
   #mast .dek{margin-top:7px; display:flex; gap:16px; flex-wrap:wrap;}
+
+  /* Side by side, the lockup leaves the standfirst a column too narrow to read. */
+  @media (max-width:620px){
+    #mast{display:block;}
+    #mast h1 img{width:clamp(150px, 46vw, 212px);}
+    #mast .blurb{margin-top:10px;}
+  }
 
   .lbl{font-size:9.5px; font-weight:650; letter-spacing:0.155em; text-transform:uppercase; color:var(--ink-3);}
 
@@ -139,12 +164,15 @@
 
   <div id="main">
     <header id="mast">
-      <h1>Prompt Mala</h1>
-      <p class="stand">Every flower is one prompt. Every garland is one session, read top to
-        bottom in the order it was typed.</p>
-      <div class="dek">
-        <span class="lbl" id="mCount">&nbsp;</span>
-        <span class="lbl">10 Jun &ndash; 5 Oct 2026</span>
+      <h1><img src="public/logo.webp" width="640" height="389" alt="Prompt Mala"
+               decoding="async" fetchpriority="high"></h1>
+      <div class="blurb">
+        <p class="stand">Every flower is one prompt. Every garland is one session, read top to
+          bottom in the order it was typed.</p>
+        <div class="dek">
+          <span class="lbl" id="mCount">&nbsp;</span>
+          <span class="lbl">10 Jun &ndash; 5 Oct 2026</span>
+        </div>
       </div>
     </header>
 

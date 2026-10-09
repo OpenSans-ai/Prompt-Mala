@@ -4,3 +4,6 @@ private/
 # macOS folder metadata
 .DS_Store
 .vercel
+
+# Byte-compiled
+__pycache__/
