@@ -177,7 +177,14 @@ The piece hangs on the left; a reading of one flower sits on the right.
   headline, then the analysis, then the context. A small label follows the pointer too.
 - **Click** to pin a flower, so the panel holds it when the pointer moves off. Previous/Next
   walk the whole run in order.
-- **Pause motion** freezes the sway; panning, zooming and selection keep working.
+- **Pause motion** freezes the sway; selection keeps working.
+
+Small brass **ghungrus** are strung between the flowers. They are decoration and carry no
+data, so they live in their own list rather than in `beads` — which is the whole reason
+hit testing never picks one up, with no special case needed. Brushing the garlands rings
+them: three bells struck slightly out of step, each built from inharmonic partials, since
+a bell's overtones are not whole multiples of a fundamental and that is exactly why it
+rings like metal instead of sounding like a note.
 
 Under 860px wide the panel stacks underneath and stays shut until you pick a flower, so
 it does not eat half the piece while empty. The piece itself keeps a floor of 190px and the

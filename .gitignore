@@ -3,3 +3,4 @@ private/
 
 # macOS folder metadata
 .DS_Store
+.vercel

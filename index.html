@@ -427,6 +427,25 @@ for (const b of beads) beads[b.id].strand = strands[b.sid];
 // The cord stops at the last bead — no empty string trailing below it.
 for (const st of strands) st.cord = st.len;
 
+// Ghungrus: small brass bells strung between the flowers. They are decoration
+// and carry no data, so they live in their own list — hitTest only ever walks
+// `beads`, which is what keeps them unhoverable without any special cases.
+const bells = [];
+for (const st of strands){
+  const first = beads.find(b => b.strand === st);
+  if (!first) continue;
+  // Spaced out: an accent every few flowers, not one per flower. At a bell
+  // every 43 units there were more bells than flowers and they read as part of
+  // the thread rather than as something hung on it.
+  let d = first.depth + 30 + rnd(st.x * 1.7) * 60;
+  while (d < st.len - 8){
+    bells.push({ strand: st, depth: d,
+                 r: 3.0 + rnd(d * 0.37 + st.x) * 1.7,
+                 tilt: (rnd(d * 1.9 + st.x * 0.4) - 0.5) * 0.5 });
+    d += 95 + rnd(d * 0.11 + st.x * 2.3) * 150;
+  }
+}
+
 /* ---------- the doorway ----------
    The curtain hangs in an arched opening with daylight behind it, so the glass
    is lit from the far side: that is what makes a bead curtain worth looking at,
@@ -807,6 +826,37 @@ function makeSprite(D, kind, st, bright, s){
   return { c: c, ww: cw/s, wh: ch/s };
 }
 
+// A ghungru: a little brass sphere with its slit, lit from the upper left.
+const bellCache = new Map();
+function getBell(r, s){
+  const key = Math.round(r*4) + '|' + s;
+  let sp = bellCache.get(key);
+  if (sp) return sp;
+  const pad = Math.ceil(3*s), side = Math.ceil(r*2*s) + pad*2;
+  const c = document.createElement('canvas');
+  c.width = c.height = side;
+  const x = c.getContext('2d');
+  x.translate(side/2, side/2); x.scale(s, s);
+  x.fillStyle = 'rgba(40,26,8,0.40)';
+  x.beginPath(); x.arc(r*0.12, r*0.16, r, 0, Math.PI*2); x.fill();
+  const g = x.createRadialGradient(-r*0.34, -r*0.40, 0, 0, 0, r*1.12);
+  g.addColorStop(0,    '#fff0bd');
+  g.addColorStop(0.28, '#f0c868');
+  g.addColorStop(0.62, '#c99433');
+  g.addColorStop(1,    '#7d561a');
+  x.fillStyle = g;
+  x.beginPath(); x.arc(0, 0, r, 0, Math.PI*2); x.fill();
+  x.strokeStyle = 'rgba(62,40,10,0.72)';
+  x.lineWidth = Math.max(0.3, r*0.17);
+  x.beginPath(); x.moveTo(-r*0.52, r*0.30); x.lineTo(r*0.52, r*0.18); x.stroke();
+  x.fillStyle = 'rgba(255,250,224,0.85)';
+  x.beginPath(); x.ellipse(-r*0.33, -r*0.38, r*0.21, r*0.15, -0.5, 0, Math.PI*2); x.fill();
+  sp = { c: c, ww: side/s, wh: side/s };
+  if (bellCache.size > 400) bellCache.clear();
+  bellCache.set(key, sp);
+  return sp;
+}
+
 function getSprite(b, s){
   const st = beadStyle(b);
   const lb = Math.round(b.L / 1.5);
@@ -1012,6 +1062,21 @@ function render(t){
     }
   }
 
+  // ghungrus, hung on the same cords and swaying with them
+  if (!far){
+    for (const bl of bells){
+      const st = bl.strand, a = angAt(st, bl.depth);
+      const wx = st.x + Math.sin(a)*bl.depth, wy = st.top + Math.cos(a)*bl.depth;
+      const sx = w2x(wx), sy = w2y(wy);
+      if (sx < -padX || sx > cvw + padX || sy < -padY || sy > cvh + padY) continue;
+      const sp = getBell(bl.r, s);
+      const dw = sp.ww*z, dh = sp.wh*z;
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(a + bl.tilt);
+      ctx.drawImage(sp.c, -dw/2, -dh/2, dw, dh);
+      ctx.restore();
+    }
+  }
+
   // the cord seen through the glass
   if (!far) drawCords(Math.max(0.4, 0.7*z), 'rgba(246,232,200,0.16)');
 
@@ -1049,22 +1114,48 @@ function unlock(){
   }
   if (actx && actx.state === 'suspended') actx.resume();
 }
+// A ghungru, not a click. A small brass bell is inharmonic — its partials are
+// not whole multiples of a fundamental, which is exactly why it rings like
+// metal instead of sounding like a note. Three of them are struck slightly out
+// of step, because the bells on a strand never land together.
+const BELL_RATIOS = [1, 2.76, 5.41];
 function clickSound(vol){
   if (!actx || actx.state !== 'running') return;
   const now = performance.now();
-  if (now - lastClick < 48) return;
+  if (now - lastClick < 42) return;
   lastClick = now;
-  const t = actx.currentTime;
-  const o = actx.createOscillator(), g = actx.createGain(), f = actx.createBiquadFilter();
-  o.type = 'triangle';
-  o.frequency.value = 760 + Math.random()*900;
-  f.type = 'bandpass'; f.frequency.value = 1500 + Math.random()*900; f.Q = 1.1;
-  const v = Math.min(0.2, vol);
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(v, t + 0.004);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.075);
-  o.connect(f); f.connect(g); g.connect(actx.destination);
-  o.start(t); o.stop(t + 0.09);
+  const t0 = actx.currentTime;
+  const v = Math.min(0.22, vol);
+
+  for (let n = 0; n < 3; n++){
+    const t = t0 + n * (0.012 + Math.random()*0.022);     // a loose jingle
+    const root = 1180 + Math.random()*520;
+    const bus = actx.createGain();
+    bus.gain.setValueAtTime(0, t);
+    bus.gain.linearRampToValueAtTime(v * (0.5 + Math.random()*0.5), t + 0.002);
+    bus.gain.exponentialRampToValueAtTime(0.0001, t + 0.20 + Math.random()*0.12);
+    bus.connect(actx.destination);
+
+    for (let i = 0; i < BELL_RATIOS.length; i++){
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine';
+      o.frequency.value = root * BELL_RATIOS[i] * (1 + (Math.random()-0.5)*0.01);
+      g.gain.value = 1 / (1 + i*1.7);                      // upper partials quieter
+      o.connect(g); g.connect(bus);
+      o.start(t); o.stop(t + 0.36);
+    }
+
+    // the strike itself: a very short filtered noise tick
+    const len = Math.floor(actx.sampleRate * 0.012);
+    const buf = actx.createBuffer(1, len, actx.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random()*2 - 1) * (1 - i/len);
+    const src = actx.createBufferSource(); src.buffer = buf;
+    const hp = actx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2600;
+    const ng = actx.createGain(); ng.gain.value = 0.5;
+    src.connect(hp); hp.connect(ng); ng.connect(bus);
+    src.start(t);
+  }
 }
 
 /* ---------- interaction ---------- */
