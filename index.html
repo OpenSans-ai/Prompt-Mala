@@ -1591,14 +1591,40 @@ function readFlower(b){
     : { ok:false, dim:weakest.name, text:weakest.why, fix:FIX[weakest.name] };
 
   // one observation, first that fits
+  // Prompt Character reads the row's own columns — when it was typed, where it
+  // fell in the session, how long it is, what it points at. The ladder runs
+  // most particular first, so a prompt that is several of these at once gets
+  // named by its least ordinary one, and the last branch always matches.
+  // Nothing is invented here: every test is on a field the dataset carries.
+  // There is deliberately no branch for a very short prompt with many asks:
+  // the shortest many-ask prompt in this data is 18 words, so it would never
+  // fire. Nor a plain many-asks catch-all — the ten that are not already
+  // Laundry Lists all match something more particular above.
   let rang = null;
-  if (b.wc <= 6 && b.bundle === 2)              rang = ['Tiny Prompt, Big Ask', b.wc + ' words carrying several requests at once.'];
-  else if (b.ord >= 2 && b.gap >= 0 && b.gap < 120) rang = ['Third Time\'s the Charm', 'Flower ' + (b.ord+1) + ' of this garland, and hard on the heels of the last.'];
-  else if (b.ground === 2)                      rang = ['The Comparison Maker', 'Pins the ask down by holding it against something else.'];
-  else if (b.wc >= 40 && b.ground > 0)          rang = ['The Detail Lover', b.wc + ' words and something pointed at as well.'];
-  else if (b.bundle === 0 && b.spec <= 1 && b.wc <= 12) rang = ['Straight to the Point', 'One ask, named plainly, in ' + b.wc + ' words.'];
-  else if (b.hour === 3)                        rang = ['Night Shift', 'Typed late, when the day had already gone long.'];
+  if (b.ord === 0 && b.wc >= 40)                rang = ['Arriving With a Plan', 'Opens the session with ' + b.wc + ' words.'];
+  else if (b.ord === 0)                         rang = ['The Opener', 'The prompt this session starts from.'];
+  else if (b.ord === b.slen - 1 && b.slen > 3)  rang = ['The Last Word', 'Where this session stopped, ' + b.slen + ' prompts in.'];
+  else if (b.gap >= 0 && b.gap < 30)            rang = ['Hot on the Heels', 'Sent ' + b.gap + 's after the one before it.'];
+  else if (b.gap > 8 * 3600)                    rang = ['Slept On It', 'Picked the thread back up ' + fmtGap(b.gap) + ' later.'];
   else if (b.gap > 3600)                        rang = ['After a Long Pause', 'Picked the thread back up ' + fmtGap(b.gap) + ' later.'];
+  else if (b.clarity === 2)                     rang = ['Typed in a Hurry', 'Heavy typos — the thought outran the keyboard.'];
+  else if (b.wc >= 60)                          rang = ['The Long Read', b.wc + ' words in a single prompt.'];
+  else if (b.ground === 2)                      rang = ['The Comparison Maker', 'Pins the ask down by holding it against something else.'];
+  else if (b.wc >= 40 && b.ground === 1)        rang = ['The Detail Lover', b.wc + ' words and a picture pointed at as well.'];
+  else if (b.ground === 1)                      rang = ['Show, Don\'t Tell', 'Points at a picture instead of describing it.'];
+  else if (b.bundle === 2 && b.wc >= 30)        rang = ['The Laundry List', 'Several asks at once, across ' + b.wc + ' words.'];
+  else if (b.spec === 3)                        rang = ['A Wave of the Hand', 'Vague about what exactly it wants.'];
+  else if (b.spec === 0 && b.bundle === 0 && b.clarity === 0)
+                                                rang = ['The Precision Instrument', 'One ask, specific, and cleanly typed.'];
+  else if (b.fatIdx === 2 && b.clarity > 0)     rang = ['Running on Fumes', 'Late in the session, and the typing shows it.'];
+  else if (b.bundle === 0 && b.spec <= 1 && b.wc <= 12)
+                                                rang = ['Straight to the Point', 'One ask, named plainly, in ' + b.wc + ' words.'];
+  else if (b.spec === 2 && b.wc >= 25)          rang = ['Thinking Out Loud', 'Part precise, part still working itself out, across ' + b.wc + ' words.'];
+  else if (b.hour === 3)                        rang = ['Night Shift', 'Typed late, when the day had already gone long.'];
+  else if (b.hour === 0)                        rang = ['First Thing', 'Typed in the morning, before the day filled up.'];
+  else if (b.ord >= 2 && b.gap >= 0 && b.gap < 120)
+                                                rang = ['Third Time\'s the Charm', 'Flower ' + (b.ord+1) + ' of this garland, hard on the heels of the last.'];
+  else if (b.fatIdx === 0 && b.slen >= 20)      rang = ['Early Days', 'Near the top of a ' + b.slen + '-prompt session.'];
   else if (b.bundle === 0)                      rang = ['One Thing at a Time', 'A single ask, not a list.'];
   else                                          rang = ['In the Thick of It', 'Flower ' + (b.ord+1) + ' of ' + b.slen + ' in this garland.'];
 
