@@ -58,7 +58,6 @@
       border-left:0; border-top:1px solid var(--rule-firm);
       padding:var(--pad) var(--pad) calc(var(--pad) + env(safe-area-inset-bottom));}
     #sEmpty{display:none;}
-    #subkey{display:none;}
   }
 
   /* ---- masthead ---- */
@@ -148,18 +147,47 @@
   #capTop{display:flex; justify-content:space-between; align-items:baseline; gap:16px;}
   #hint{color:var(--ink-3); font-size:10.5px; letter-spacing:0.01em; transition:opacity .6s; text-align:right;}
 
-  #legend{display:flex; gap:9px 26px; flex-wrap:wrap; align-items:flex-start; margin-top:8px;}
-  .kgrp{display:flex; flex-direction:column; gap:5px;}
-  .krow{display:flex; gap:14px; flex-wrap:wrap; align-items:center;}
-  .lg{display:flex; align-items:center; gap:5px;}
-  .lg canvas{width:25px; height:25px; display:block; flex:0 0 auto;}
-  .lgt{display:flex; flex-direction:column; line-height:1.2;}
+  /* Two groups side by side, divided by a rule rather than boxed into cards.
+     Each names what it encodes, then shows it — and the swatches are drawn by
+     the same renderer as the curtain, so the key cannot drift from the piece. */
+  #legend{display:flex; align-items:flex-start; gap:clamp(22px, 4vw, 54px); margin-top:10px;}
+  .kgrp{flex:1 1 0; min-width:0;}
+  .kgrp.sizeGrp{flex:1.35 1 0;}
+  .kgrp + .kgrp{padding-left:clamp(22px, 4vw, 54px); border-left:1px solid var(--rule);}
+  .kgh{margin:0; font-size:12.5px; font-weight:600; letter-spacing:-0.006em; color:var(--ink);}
+  .kgs{margin:3px 0 0; font-size:11px; line-height:1.35; color:var(--ink-3);}
+  /* A grid rather than a wrapped row, so entries line up in columns instead of
+     landing wherever the previous label happened to end. auto-fit lets the
+     quality ramp run as one row where there is width for it and fall to two
+     where there is not, without a breakpoint for each case. */
+  .krow{display:grid; gap:12px 20px; align-items:center; margin-top:12px;}
+  .types{grid-template-columns:repeat(auto-fit, minmax(74px, 1fr));}
+  .sizes{grid-template-columns:repeat(auto-fit, minmax(124px, 1fr));}
+  .lg{display:flex; align-items:center; gap:8px;}
+  /* A fixed cell per swatch, so the flowers can grow through the quality ramp
+     while every label still starts on the same line. */
+  .sw{flex:0 0 auto; display:flex; align-items:center; justify-content:center;}
+  .types .sw{width:28px; height:28px;}
+  .sizes .sw{width:42px; height:42px;}
+  .sw canvas{display:block;}
+  .lgt{display:flex; flex-direction:column; line-height:1.25;}
   .lgt b{font-weight:560; font-size:12px; color:var(--ink);}
-  .lgt i{font-style:normal; font-size:10.5px; color:var(--ink-3);}
+  .lgt i{font-style:normal; font-size:10.5px; color:var(--ink-3);
+    font-variant-numeric:lining-nums tabular-nums;}
 
-  #subkey{display:flex; gap:5px 18px; flex-wrap:wrap; margin-top:6px;
-    font-size:10.5px; color:var(--ink-3);}
-  #subkey b{font-weight:600; color:var(--ink-2);}
+  /* Stacked, the groups sit one above the other and the divider turns with
+     them. This block has to live *after* the rules above: it matches them at
+     equal specificity, so source order is what decides it. */
+  @media (max-width:860px){
+    /* align-items:flex-start is right across the row and wrong down it: in a
+       column it shrinks each group to its content and leaves the grids one
+       entry wide, which drives the key long enough to squeeze the piece down
+       to its floor. */
+    #legend{flex-direction:column; align-items:stretch; gap:15px;}
+    .kgrp.sizeGrp{flex:1 1 auto;}
+    .kgrp + .kgrp{padding-left:0; border-left:0;
+      padding-top:15px; border-top:1px solid var(--rule);}
+  }
 
   /* ---- the reading panel ---- */
   #side .empty{color:var(--ink-3); font-size:13px; line-height:1.55; font-family:var(--font-ui);}
@@ -226,6 +254,8 @@
   .note{margin:6px 0 0; font-size:11.5px; line-height:1.45; color:var(--ink-3);}
 
   .caveat{margin-top:14px; font-size:10.5px; line-height:1.45; color:var(--ink-3);}
+  /* Out on its own now that Prompt Story is gone, so it brings its own rule. */
+  #sBody > .caveat{margin:18px 0 0; padding-top:14px; border-top:1px solid var(--rule);}
 </style>
 </head>
 <body>
@@ -260,11 +290,10 @@
 
     <footer id="caption">
       <div id="capTop">
-        <span class="lbl">Key</span>
+        <span class="lbl">How to Read the Mala</span>
         <span id="hint">brush the garlands &middot; hover or click a flower</span>
       </div>
       <div id="legend"></div>
-      <div id="subkey"></div>
     </footer>
   </div>
 
@@ -309,16 +338,12 @@
       </section>
 
       <section class="fs rang">
-        <span class="lbl">Prompt Rang</span>
+        <span class="lbl">Prompt Character</span>
         <h3 id="sRangTitle"></h3>
         <p id="sRangBody"></p>
       </section>
 
-      <section class="fs">
-        <span class="lbl">Prompt Story</span>
-        <div id="sStory"></div>
-        <p class="caveat" id="sCaveat"></p>
-      </section>
+      <p class="caveat" id="sCaveat"></p>
 
       <div id="sNav">
         <button id="sPrev">&larr; Previous</button>
@@ -1585,14 +1610,6 @@ function showPanel(b){
   $('sRangTitle').textContent = r.rang[0];
   $('sRangBody').textContent = r.rang[1];
 
-  const mo = parseInt(b.ts.slice(0,2),10), da = parseInt(b.ts.slice(3,5),10);
-  $('sStory').innerHTML =
-    plainRow('When', da + ' ' + MONTHS[mo-1] + ' 2026, ' + b.ts.slice(6)) +
-    plainRow('Garland', (b.sid+1) + ' of ' + nStrands) +
-    plainRow('Flower', (b.ord+1) + ' of ' + b.slen) +
-    plainRow('Words', b.wc + (b.wc === 1 ? '' : '')) +
-    plainRow('Pause before', fmtGap(b.gap));
-
   $('sCaveat').textContent =
     'Score and readings come from keyword and pattern heuristics over the prompt text, ' +
     'not a per-prompt reading. They are directionally right and will misfire on sarcasm ' +
@@ -1684,51 +1701,57 @@ function buildLegend(){
     const st = beadStyle(bead);
     const sp = makeSprite(bead.D, bead.kind, st, 1, 3.2);
     const c = document.createElement('canvas');
-    c.width = px; c.height = px;
-    c.getContext('2d').drawImage(sp.c, 0, 0, px, px);
-    return c;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(px * dpr); c.height = Math.round(px * dpr);
+    c.style.width = px + 'px'; c.style.height = px + 'px';
+    c.getContext('2d').drawImage(sp.c, 0, 0, c.width, c.height);
+    const cell = document.createElement('span');
+    cell.className = 'sw';
+    cell.appendChild(c);
+    return cell;
   }
-  function item(bead, name, note, px){
+  function item(bead, name, count, px){
     const d = document.createElement('div'); d.className = 'lg';
-    d.appendChild(swatch(bead, px || 34));
+    d.appendChild(swatch(bead, px));
     const t = document.createElement('span'); t.className = 'lgt';
-    t.innerHTML = '<b>' + name + '</b>' + (note ? '<i>' + note + '</i>' : '');
+    const b = document.createElement('b'); b.textContent = name;
+    t.appendChild(b);
+    if (count !== null){ const i = document.createElement('i'); i.textContent = count; t.appendChild(i); }
     d.appendChild(t);
     return d;
   }
-  function group(title, nodes){
-    const g = document.createElement('div'); g.className = 'kgrp';
-    const h = document.createElement('span'); h.className = 'lbl'; h.textContent = title;
-    g.appendChild(h);
-    const row = document.createElement('div'); row.className = 'krow';
+  function group(title, subtitle, rowClass, nodes){
+    const g = document.createElement('section'); g.className = 'kgrp ' + rowClass + 'Grp';
+    const h = document.createElement('h3'); h.className = 'kgh'; h.textContent = title;
+    const sub = document.createElement('p'); sub.className = 'kgs'; sub.textContent = subtitle;
+    const row = document.createElement('div'); row.className = 'krow ' + rowClass;
     nodes.forEach(n => row.appendChild(n));
-    g.appendChild(row);
+    g.appendChild(h); g.appendChild(sub); g.appendChild(row);
     return g;
   }
 
-  const plain = { phase:0, D:KIND_D[KIND_FULL], kind:KIND_FULL };
   legendEl.innerHTML = '';
 
-  // which flower — colour carries the phase
-  legendEl.appendChild(group('Which flower · phase of the work',
+  // Colour carries the phase, and each phase is its own species.
+  const plain = { phase:0, D:KIND_D[KIND_FULL], kind:KIND_FULL };
+  legendEl.appendChild(group('Flower Type', 'What I was working on', 'types',
     LEGEND.phase.map((lab, i) =>
-      item(Object.assign({}, plain, { phase:i }), lab, nf.format(counts[i])))));
+      item(Object.assign({}, plain, { phase:i }), lab, nf.format(counts[i]), 26))));
 
-  // how open — one rolled-up reading of the prompt
+  // Size is the rolled-up reading, so the ramp is drawn at the real ratios the
+  // curtain uses — KIND_D scaled to fit the cell — rather than at sizes picked
+  // to look like a ramp. Shown on the marigold: size reads poorly on a leaf.
   const tiers = [0,0,0,0];
   for (const b of beads) tiers[b.kind]++;
-  // shown on the marigold: openness barely reads on a leaf
-  legendEl.appendChild(group('Size · overall quality of the prompt',
-    KIND_NAMES.map((lab, k) =>
+  const ramp = KIND_D.map(d => Math.round(d / KIND_D[KIND_D.length-1] * 40));
+  legendEl.appendChild(group('Prompt Quality', 'Flower size reflects overall prompt quality.', 'sizes',
+    KIND_NAMES.map((sizeName, k) =>
       item({ phase:1, kind:k, D:KIND_D[k] },
-           lab, QUALITY_NAMES[k] + ' · ' + nf.format(tiers[k])))));
-
-  document.getElementById('subkey').innerHTML =
-    '<span><b>Size</b> rolls up specificity, clarity, grounding and how many asks' +
-    ' &mdash; each on its own is in the panel</span>' +
-    '<span><b>Spacing down a garland</b> the real pause before that prompt</span>' +
-    '<span><b>Each garland</b> one session, left to right in order</span>';
+           cap(QUALITY_NAMES[k]) + ' · ' + cap(sizeName),
+           nf.format(tiers[k]), ramp[k]))));
 }
+
+function cap(w){ return w.charAt(0).toUpperCase() + w.slice(1); }
 
 document.getElementById('tFit').onclick = () => { readerChose = true; sel = null; showPanel(null); hideTip(); draw(); };
 
