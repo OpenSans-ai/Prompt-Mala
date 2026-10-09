@@ -3,18 +3,39 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Prompt Mala</title>
+<title>Prompt माला</title>
+<link rel="icon" type="image/png" sizes="32x32" href="public/icon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="public/icon-512.png">
+<link rel="apple-touch-icon" href="public/icon-180.png">
+<meta name="description" content="2,297 prompts across 57 sessions, hung as painted garlands in a carved doorway. Every flower is one prompt.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Prompt माला">
+<meta property="og:description" content="2,297 prompts across 57 sessions, hung as painted garlands in a carved doorway. Every flower is one prompt.">
+<!-- Relative, so it resolves against wherever the piece is served from. Strict
+     scrapers want this absolute; put the deployed URL here if the card matters. -->
+<meta property="og:image" content="public/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
 <style>
   :root{
     --paper:#f4efe4;
     --ink:#14110c; --ink-2:#574f42; --ink-3:#8d8475;
     --rule:rgba(20,17,12,0.16); --rule-firm:rgba(20,17,12,0.82);
     --pad:clamp(14px, 3vw, 34px);
+
+    /* Two faces, two jobs: Cormorant is the editorial voice, DM Sans does all
+       the working text. Both have a local fallback so a failed font load
+       degrades rather than breaks — the piece is otherwise offline-capable and
+       this is its one network dependency. The Devanagari face the lockup used
+       is gone with it; माला is painted now, and nothing else sets Devanagari. */
+    --font-display:'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    --font-ui:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; height:100%; overflow:hidden; background:var(--paper);}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
-    color:var(--ink); font-feature-settings:"tnum" 1;}
+  body{font-family:var(--font-ui); color:var(--ink); font-feature-settings:"tnum" 1;}
 
   /* The piece on the left, the reading of a single bead on the right. */
   #app{height:100%; display:flex;}
@@ -38,11 +59,25 @@
   }
 
   /* ---- masthead ---- */
-  #mast{flex:0 0 auto; padding-bottom:9px; border-bottom:1px solid var(--rule-firm);}
-  #mast h1{margin:0; font-size:clamp(25px, 4.2vw, 37px); font-weight:640;
-    letter-spacing:-0.033em; line-height:0.96;}
-  #mast .stand{margin:7px 0 0; max-width:52ch; font-size:12.5px; line-height:1.4; color:var(--ink-2);}
+  /* The title is the painted lockup, public/logo.webp, not type. It sits on the
+     page rather than in a box of its own: the paper it was painted on has been
+     divided back out into an alpha channel, so what is left is the ink. The
+     lockup is wide, so it stands beside the standfirst instead of over it and
+     costs the piece almost no height. See logo_assets.py. */
+  #mast{flex:0 0 auto; padding-bottom:9px; border-bottom:1px solid var(--rule-firm);
+    display:flex; align-items:flex-end; gap:clamp(14px, 2.6vw, 30px);}
+  #mast h1{margin:0; flex:0 0 auto; line-height:0;}
+  #mast h1 img{display:block; width:clamp(152px, 19vw, 232px); height:auto;}
+  #mast .blurb{flex:1 1 auto; min-width:0; padding-bottom:3px;}
+  #mast .stand{margin:0; max-width:52ch; font-size:12.5px; line-height:1.4; color:var(--ink-2);}
   #mast .dek{margin-top:7px; display:flex; gap:16px; flex-wrap:wrap;}
+
+  /* Side by side, the lockup leaves the standfirst a column too narrow to read. */
+  @media (max-width:620px){
+    #mast{display:block;}
+    #mast h1 img{width:clamp(150px, 46vw, 212px);}
+    #mast .blurb{margin-top:10px;}
+  }
 
   .lbl{font-size:9.5px; font-weight:650; letter-spacing:0.155em; text-transform:uppercase; color:var(--ink-3);}
 
@@ -95,41 +130,68 @@
   #subkey b{font-weight:600; color:var(--ink-2);}
 
   /* ---- the reading panel ---- */
-  #side .empty{color:var(--ink-3); font-size:12.5px; line-height:1.5;}
-  #sType{font-size:11px; font-weight:650; letter-spacing:0.15em; text-transform:uppercase;}
-  #sTitle{margin:9px 0 0; font-size:clamp(23px,2.4vw,30px); font-weight:640;
-    letter-spacing:-0.028em; line-height:1;}
-  #sDesc{margin:11px 0 0; font-size:13px; line-height:1.45; color:var(--ink-2);}
-  #sMeta{margin-top:12px; padding-top:12px; border-top:1px solid var(--rule);
-    font-size:11px; line-height:1.5; color:var(--ink-3);}
+  #side .empty{color:var(--ink-3); font-size:13px; line-height:1.55; font-family:var(--font-ui);}
 
-  .sect{margin-top:18px; padding-top:14px; border-top:1px solid var(--rule);}
-  .sect > .lbl{display:block; margin-bottom:11px;}
+  .fs{padding:18px 0; border-top:1px solid var(--rule);}
+  .fs:first-child{padding-top:2px; border-top:0;}
+  .fs > .lbl{display:block; margin-bottom:10px;}
 
-  .bar{margin-bottom:13px;}
-  .bar .hd{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
-    font-size:12px; margin-bottom:6px;}
-  .bar .hd .v{color:var(--ink); font-weight:560;}
-  .bar .tr{height:5px; background:rgba(20,17,12,0.08); position:relative;}
-  .bar .fl{position:absolute; left:0; top:0; bottom:0; background:var(--ink);
-    transition:width .22s cubic-bezier(.2,.85,.25,1);}
+  /* Prompt Score carries the hierarchy: the only serif in the panel, the only
+     thing at display size, and the only element with a graphic beside it. */
+  .score{padding-bottom:20px;}
+  .scoreRow{display:flex; gap:15px; align-items:flex-start;}
+  .dial{position:relative; width:64px; height:64px; flex:0 0 64px;}
+  .dial svg{width:64px; height:64px; transform:rotate(-90deg);}
+  .dial circle{fill:none; stroke-width:4;}
+  .dialTrack{stroke:rgba(20,17,12,0.10);}
+  .dialFill{stroke:#C8761C; stroke-linecap:round; transition:stroke-dashoffset .45s cubic-bezier(.2,.85,.25,1);}
+  .dial span{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:600; font-size:21px; letter-spacing:-0.02em;
+    /* Cormorant ships old-style figures by default, which renders 10.0 as
+       something closer to IO.O. The score has to read as a number. */
+    font-variant-numeric:lining-nums tabular-nums;}
+  .scoreText{flex:1 1 auto; min-width:0;}
+  .scoreText h2{margin:1px 0 0; font-family:var(--font-display); font-weight:600;
+    font-size:clamp(21px,2.1vw,26px); line-height:1.1; letter-spacing:-0.012em;}
+  .scoreText p{margin:7px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2);}
+
+  .tags{display:flex; flex-wrap:wrap; gap:6px;}
+  .tag{font-size:11.5px; font-weight:500; line-height:1; padding:6px 10px;
+    border:1px solid var(--rule); border-radius:999px; color:var(--ink-2);
+    background:rgba(200,118,28,0.05);}
+
+  .dim{margin-bottom:13px;}
+  .dim:last-child{margin-bottom:0;}
+  .dimHd{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    font-size:12.5px; font-weight:500; margin-bottom:5px;}
+  .dimHd .g{color:var(--ink-2); font-weight:400;}
+  .dim .tr{height:4px; background:rgba(20,17,12,0.08); position:relative; border-radius:2px;}
+  .dim .fl{position:absolute; left:0; top:0; bottom:0; background:var(--ink); border-radius:2px;
+    transition:width .3s cubic-bezier(.2,.85,.25,1);}
+  .dim .note{margin:5px 0 0;}
+
+  .miss{margin:0; font-size:12.5px; line-height:1.5; color:var(--ink);}
+  .fix{margin:8px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2);
+    padding-left:11px; border-left:2px solid rgba(200,118,28,0.5);}
+
+  /* the one place the panel is allowed to be playful */
+  .rang h3{margin:0; font-family:var(--font-display); font-weight:600; font-style:italic;
+    font-size:19px; line-height:1.2; letter-spacing:-0.008em;}
+  .rang p{margin:6px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2);}
 
   #sNav{display:flex; justify-content:space-between; align-items:center; gap:10px;
-    margin-top:18px; padding-top:13px; border-top:1px solid var(--rule); font-size:12px;}
-  #sNav button{border:0; background:none; font-family:inherit; font-size:12px;
+    margin-top:4px; padding-top:15px; border-top:1px solid var(--rule); font-size:12px;}
+  #sNav button{border:0; background:none; font-family:var(--font-ui); font-size:12px;
     color:var(--ink-2); cursor:pointer; padding:4px 0;}
   #sNav button:hover{color:var(--ink);}
   #sNav button:disabled{color:var(--ink-3); cursor:default;}
   #sNav .pos{color:var(--ink-3);}
 
   .row{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
-    font-size:12px; padding:6px 0; border-bottom:1px solid var(--rule);}
-  .row .v{color:var(--ink); font-weight:530; text-align:right;}
-  .note{margin:6px 0 10px; font-size:11px; line-height:1.4; color:var(--ink-3);}
-
-  .brk{margin-top:12px; padding-top:11px; border-top:1px solid var(--rule);}
-  .brk .bar .hd{font-size:11.5px;}
-  .brk .bar .tr{height:4px;}
+    font-size:12.5px; padding:6px 0; border-bottom:1px solid var(--rule);}
+  .row:last-of-type{border-bottom:0;}
+  .row .v{color:var(--ink); font-weight:500; text-align:right;}
+  .note{margin:6px 0 0; font-size:11.5px; line-height:1.45; color:var(--ink-3);}
 
   .caveat{margin-top:14px; font-size:10.5px; line-height:1.45; color:var(--ink-3);}
 </style>
@@ -139,12 +201,15 @@
 
   <div id="main">
     <header id="mast">
-      <h1>Prompt Mala</h1>
-      <p class="stand">Every flower is one prompt. Every garland is one session, read top to
-        bottom in the order it was typed.</p>
-      <div class="dek">
-        <span class="lbl" id="mCount">&nbsp;</span>
-        <span class="lbl">10 Jun &ndash; 5 Oct 2026</span>
+      <h1><img src="public/logo.webp" width="640" height="389" alt="Prompt माला"
+               decoding="async" fetchpriority="high"></h1>
+      <div class="blurb">
+        <p class="stand">Every flower is one prompt. Every garland is one session, read top to
+          bottom in the order it was typed.</p>
+        <div class="dek">
+          <span class="lbl" id="mCount">&nbsp;</span>
+          <span class="lbl">10 Jun &ndash; 5 Oct 2026</span>
+        </div>
       </div>
     </header>
 
@@ -169,25 +234,55 @@
 
   <aside id="side">
     <div id="sEmpty" class="empty">
-      Hover a flower to see what kind of prompt it was. Click one to read it in full here.
+      Hover a flower to read it. Click one to keep it here while you look elsewhere.
     </div>
     <div id="sBody" hidden>
-      <div id="sType"></div>
-      <h2 id="sTitle"></h2>
-      <p id="sDesc"></p>
-      <div id="sMeta" class="lbl"></div>
 
-      <div class="sect">
-        <span class="lbl">Prompt analysis</span>
-        <div id="sBars"></div>
-        <p class="caveat">Labels come from keyword and pattern heuristics over the prompt
-          text, not a per-prompt reading. Bars show where the label sits on its scale.</p>
-      </div>
+      <section class="fs score">
+        <span class="lbl">Prompt Score</span>
+        <div class="scoreRow">
+          <div class="dial"><svg viewBox="0 0 64 64" aria-hidden="true">
+            <circle class="dialTrack" cx="32" cy="32" r="26"></circle>
+            <circle class="dialFill" id="sDial" cx="32" cy="32" r="26"></circle>
+          </svg><span id="sScore">—</span></div>
+          <div class="scoreText">
+            <h2 id="sVerdict"></h2>
+            <p id="sWhy"></p>
+          </div>
+        </div>
+      </section>
 
-      <div class="sect">
-        <span class="lbl">In context</span>
-        <div id="sCtx"></div>
-      </div>
+      <section class="fs">
+        <span class="lbl">Prompt Style</span>
+        <div id="sTags" class="tags"></div>
+      </section>
+
+      <section class="fs">
+        <span class="lbl">Prompt Intent</span>
+        <div id="sIntent"></div>
+      </section>
+
+      <section class="fs">
+        <span class="lbl">Prompt Strengths</span>
+        <div id="sDims"></div>
+      </section>
+
+      <section class="fs">
+        <span class="lbl">What&rsquo;s Missing?</span>
+        <div id="sMissing"></div>
+      </section>
+
+      <section class="fs rang">
+        <span class="lbl">Prompt Rang</span>
+        <h3 id="sRangTitle"></h3>
+        <p id="sRangBody"></p>
+      </section>
+
+      <section class="fs">
+        <span class="lbl">Prompt Story</span>
+        <div id="sStory"></div>
+        <p class="caveat" id="sCaveat"></p>
+      </section>
 
       <div id="sNav">
         <button id="sPrev">&larr; Previous</button>
@@ -383,6 +478,11 @@ function baseArchY(x){
 // a thread below it, which is the difference between attached and floating.
 // Kept small so even the smallest flower still shows most of itself.
 const SOFFIT = -4;
+
+// Total |angular velocity| across all garlands that counts as the curtain
+// being swung hard. Sets where the bells are at full tilt; below it both their
+// loudness and their frequency scale down.
+const SWING_FULL = 0.55;
 for (const st of strands) st.top = baseArchY(st.x) + SOFFIT;
 
 let worldH = 0;
@@ -941,6 +1041,7 @@ function render(t){
   let moving = false;
   // Paused freezes the sway where it is; the view still redraws so panning,
   // zooming and selection keep working.
+  let swing = 0;
   if (!paused){
     for (const st of strands){
       st.v += -0.0042 * st.a;
@@ -949,6 +1050,20 @@ function render(t){
       if (st.a > 0.45){ st.a = 0.45; if (st.v > 0) st.v = 0; }
       else if (st.a < -0.45){ st.a = -0.45; if (st.v < 0) st.v = 0; }
       if (Math.abs(st.a) > 1e-4 || Math.abs(st.v) > 1e-5) moving = true;
+      swing += Math.abs(st.v);
+    }
+  }
+
+  // The bells are rung by the motion, not by the pointer. They used to be
+  // triggered from the drag handler, so they fell silent the instant you
+  // stopped moving even though the curtain was still swinging. Driving them
+  // from the swing means they carry on as it settles and die away with it:
+  // both how often they ring and how loudly fall as the energy does.
+  if (!paused && swing > 0){
+    const e = Math.min(1, swing / SWING_FULL);
+    // probability per frame, so the rattles thin out as well as quieten
+    if (e > 0.012 && Math.random() < e * 0.75){
+      clickSound(0.012 + e * 0.11);
     }
   }
   if (!needs && !moving) return;
@@ -1199,11 +1314,9 @@ cv.addEventListener('pointermove', e => {
       if (prox <= 0) continue;
       st.v += imp * prox * (0.55 + 0.45*Math.min(1, st.len/2200));
       st.v = Math.max(-0.05, Math.min(0.05, st.v));
-      const sp = Math.abs(st.v);
-      if (sp > 0.004 && performance.now() - st.lastClick > 160){
-        st.lastClick = performance.now();
-        clickSound(Math.min(0.16, sp*2.4) * prox);
-      }
+      // no sound here: dragging adds energy, and the render loop rings the
+      // bells from that energy. One mechanism, so the sound cannot carry on
+      // after the motion or stop before it.
     }
   }
   draw();
@@ -1292,6 +1405,100 @@ function plainRow(name, value, note){
     (note ? '<p class="note">' + esc(note) + '</p>' : '');
 }
 
+/* ---------- reading a flower ----------
+   Everything here is derived from the labels that exist on a flower:
+   word count, phase, clarity, specificity, groundedness, bundling, hour,
+   position in the garland and the pause before it. Nothing is invented.
+
+   Two things the spec asked for are not here because the data cannot support
+   them, and a plausible guess would be worse than an absence:
+     · the Goal behind a prompt, and the AI's reading of it — the published
+       data has no prompt text and no response at all
+     · anything needing the wording, such as a Plot Twist or a quoted fix
+   Prompt text does exist in private/, but this piece never displays it. */
+
+const VERDICTS = [
+  [8.0, 'Excellent prompt'],
+  [6.5, 'Clear and focused'],
+  [5.0, 'Does the job'],
+  [3.5, 'A little vague'],
+  [0,   'Needs more context']
+];
+
+// phase -> what the prompt was working on, generalised, no names
+const TASK_OF = [
+  'Shaping how it looks',
+  'Setting the ground up',
+  'Chasing something broken',
+  'How it behaves and feels'
+];
+
+function grade(v){ return v >= 0.8 ? 'High' : v >= 0.55 ? 'Good' : v >= 0.3 ? 'Moderate' : 'Needs work'; }
+
+function readFlower(b){
+  const score = Math.round(b.q * 100) / 10;
+  const verdict = VERDICTS.find(v => score >= v[0])[1];
+
+  // the three dimensions that are actually measured, each 0..1
+  const dims = [
+    { name:'Clarity', v: 1 - b.clarity/2, label: LEGEND.clarity[b.clarity],
+      why: ['Clean enough to read straight through.',
+            'A few typos, nothing that obscures the ask.',
+            'Typos heavy enough to blur what was meant.'][b.clarity] },
+    { name:'Specificity', v: 1 - b.spec/3, label: LEGEND.specificity[b.spec],
+      why: ['Names exactly what to change and where.',
+            'States the ask directly, without much elaboration.',
+            'Part precise, part left for the reader to fill in.',
+            'Gestures at the problem; the detail is assumed.'][b.spec] },
+    { name:'Context', v: b.ground/2, label: LEGEND.groundedness[b.ground],
+      why: ['Nothing pointed at — no image, no example.',
+            'Points at an image to anchor the ask.',
+            'Compares to something, which pins the target down.'][b.ground] }
+  ];
+
+  // style tags, in priority order; only ones the fields support
+  const tags = [];
+  if (b.spec === 0) tags.push('Specific');
+  if (b.spec === 3) tags.push('Open-ended');
+  if (b.wc <= 8) tags.push('Concise');
+  if (b.wc >= 30) tags.push('Detailed');
+  if (b.bundle === 0) tags.push('Focused');
+  if (b.bundle === 2) tags.push('Multi-part');
+  if (b.ground > 0) tags.push('Context-rich');
+  if (b.clarity === 0 && b.spec <= 1) tags.push('Direct');
+  if (b.ord > 0 && b.gap >= 0 && b.gap < 180) tags.push('Iterative');
+  // 71 flowers (3.1%) match none of the above: middling on every axis, no
+  // distinguishing feature. Specificity is always present, so it backstops the
+  // section rather than letting it render empty.
+  if (!tags.length) tags.push(['Specific','Plain-spoken','Half-specified','Open-ended'][b.spec]);
+
+  // the weakest real dimension is what is missing
+  const weakest = dims.slice().sort((x,y) => x.v - y.v)[0];
+  const FIX = {
+    'Clarity': 'A quick reread before sending would carry most of this.',
+    'Specificity': 'Name the thing to change and where it is.',
+    'Context': 'Point at the screen, the example, or the thing to match.'
+  };
+  const missing = weakest.v >= 0.8
+    ? { ok:true, text:'Nothing substantial. All three readings come back strong.' }
+    : { ok:false, dim:weakest.name, text:weakest.why, fix:FIX[weakest.name] };
+
+  // one observation, first that fits
+  let rang = null;
+  if (b.wc <= 6 && b.bundle === 2)              rang = ['Tiny Prompt, Big Ask', b.wc + ' words carrying several requests at once.'];
+  else if (b.ord >= 2 && b.gap >= 0 && b.gap < 120) rang = ['Third Time\'s the Charm', 'Flower ' + (b.ord+1) + ' of this garland, and hard on the heels of the last.'];
+  else if (b.ground === 2)                      rang = ['The Comparison Maker', 'Pins the ask down by holding it against something else.'];
+  else if (b.wc >= 40 && b.ground > 0)          rang = ['The Detail Lover', b.wc + ' words and something pointed at as well.'];
+  else if (b.bundle === 0 && b.spec <= 1 && b.wc <= 12) rang = ['Straight to the Point', 'One ask, named plainly, in ' + b.wc + ' words.'];
+  else if (b.hour === 3)                        rang = ['Night Shift', 'Typed late, when the day had already gone long.'];
+  else if (b.gap > 3600)                        rang = ['After a Long Pause', 'Picked the thread back up ' + fmtGap(b.gap) + ' later.'];
+  else if (b.bundle === 0)                      rang = ['One Thing at a Time', 'A single ask, not a list.'];
+  else                                          rang = ['In the Thick of It', 'Flower ' + (b.ord+1) + ' of ' + b.slen + ' in this garland.'];
+
+  return { score, verdict, dims, tags: tags.slice(0, 4), missing, rang,
+           task: TASK_OF[b.phase] };
+}
+
 const sEmpty = document.getElementById('sEmpty'), sBody = document.getElementById('sBody');
 
 const appEl = document.getElementById('app');
@@ -1299,47 +1506,64 @@ let shownId = -1;   // which bead the panel is currently reading
 
 function showPanel(b){
   shownId = b ? b.id : -1;
-  // drives the stacked-layout drawer as well as the panel contents
   const was = appEl.classList.contains('sel');
   appEl.classList.toggle('sel', !!b);
-  // On the stacked layout the drawer takes height off the canvas, so the
-  // backing store has to be re-measured whenever it opens or closes.
-  // The canvas watches its own box (see the ResizeObserver below), so opening
-  // or closing the drawer needs nothing here.
+  if (was !== !!b && (cv.clientWidth !== cvw || cv.clientHeight !== cvh)) resize();
   if (!b){ sEmpty.hidden = false; sBody.hidden = true; return; }
   sEmpty.hidden = true; sBody.hidden = false;
 
+  const r = readFlower(b);
+  const $ = id => document.getElementById(id);
+
+  // score, with the ring filled to match
+  $('sScore').textContent = r.score.toFixed(1);
+  $('sVerdict').textContent = r.verdict;
+  $('sWhy').textContent = r.dims.slice().sort((x,y)=>y.v-x.v)[0].why + ' ' +
+    (r.missing.ok ? '' : r.missing.fix);
+  const C = 2 * Math.PI * 26;
+  const dial = $('sDial');
+  dial.style.strokeDasharray = C.toFixed(1);
+  dial.style.strokeDashoffset = (C * (1 - r.score/10)).toFixed(1);
+
+  $('sTags').innerHTML = r.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('');
+
+  // Task is the phase, generalised. There is no Goal: nothing in the data says
+  // what outcome was wanted, and guessing one would be fiction.
+  $('sIntent').innerHTML =
+    plainRow('Task', r.task) +
+    plainRow('Asks', LEGEND.bundling[b.bundle]) +
+    '<p class="note">The goal behind the prompt is not recorded, so it is not shown.</p>';
+
+  $('sDims').innerHTML = r.dims.map(d =>
+    '<div class="dim"><div class="dimHd"><span>' + esc(d.name) + '</span>' +
+    '<span class="g">' + esc(grade(d.v)) + '</span></div>' +
+    '<div class="tr"><div class="fl" style="width:' + Math.round(d.v*100) + '%"></div></div>' +
+    '<p class="note">' + esc(d.why) + '</p></div>').join('');
+
+  $('sMissing').innerHTML = r.missing.ok
+    ? '<p class="miss">' + esc(r.missing.text) + '</p>'
+    : '<p class="miss"><b>' + esc(r.missing.dim) + '.</b> ' + esc(r.missing.text) + '</p>' +
+      '<p class="fix">Try: ' + esc(r.missing.fix) + '</p>';
+
+  $('sRangTitle').textContent = r.rang[0];
+  $('sRangBody').textContent = r.rang[1];
+
   const mo = parseInt(b.ts.slice(0,2),10), da = parseInt(b.ts.slice(3,5),10);
-  document.getElementById('sType').textContent = LEGEND.specificity[b.spec];
-  document.getElementById('sTitle').textContent = 'Flower ' + nf.format(b.id + 1);
-  document.getElementById('sDesc').textContent = SPEC_NOTE[b.spec];
-  document.getElementById('sMeta').textContent =
-    da + ' ' + MONTHS[mo-1] + ' 2026, ' + b.ts.slice(6) +
-    ' · garland ' + (b.sid+1) + ' of ' + nStrands +
-    ' · flower ' + (b.ord+1) + ' of ' + b.slen;
+  $('sStory').innerHTML =
+    plainRow('When', da + ' ' + MONTHS[mo-1] + ' 2026, ' + b.ts.slice(6)) +
+    plainRow('Garland', (b.sid+1) + ' of ' + nStrands) +
+    plainRow('Flower', (b.ord+1) + ' of ' + b.slen) +
+    plainRow('Words', b.wc + (b.wc === 1 ? '' : '')) +
+    plainRow('Pause before', fmtGap(b.gap));
 
-  // The flower only shows the first of these. The rest are the detail that used
-  // to be painted onto it and now lives here instead.
-  document.getElementById('sBars').innerHTML =
-    barRow('Overall · drawn as size', QUALITY_NAMES[b.kind] + ' · ' + KIND_NAMES[b.kind], b.q) +
-    '<div class="brk">' +
-    barRow('Specificity', LEGEND.specificity[b.spec], 1 - b.spec/3) +
-    barRow('Clarity',     LEGEND.clarity[b.clarity],  1 - b.clarity/2) +
-    barRow('Grounding',   LEGEND.groundedness[b.ground], b.ground/2) +
-    barRow('Bundling',    LEGEND.bundling[b.bundle],  b.bundle/2) +
-    barRow('Length',      b.wc + (b.wc === 1 ? ' word' : ' words'), Math.min(1, b.wc/60)) +
-    '</div>';
+  $('sCaveat').textContent =
+    'Score and readings come from keyword and pattern heuristics over the prompt text, ' +
+    'not a per-prompt reading. They are directionally right and will misfire on sarcasm ' +
+    'and terse phrasing.';
 
-  document.getElementById('sCtx').innerHTML =
-    plainRow('Phase', LEGEND.phase[b.phase], PHASE_NOTE[b.phase]) +
-    plainRow('Session position', LEGEND.fatigue[b.fatIdx]) +
-    plainRow('Time of day', LEGEND.hour[b.hour]) +
-    plainRow('Pause before', fmtGap(b.gap)) +
-    plainRow("Form", KIND_NAMES[b.kind]);
-
-  document.getElementById('sPos').textContent = nf.format(b.id+1) + ' / ' + nf.format(beads.length);
-  document.getElementById('sPrev').disabled = b.id === 0;
-  document.getElementById('sNext').disabled = b.id === beads.length-1;
+  $('sPos').textContent = nf.format(b.id+1) + ' / ' + nf.format(beads.length);
+  $('sPrev').disabled = b.id === 0;
+  $('sNext').disabled = b.id === beads.length-1;
 }
 
 function step(d){

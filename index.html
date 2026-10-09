@@ -4,9 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Prompt माला</title>
+<link rel="icon" type="image/png" sizes="32x32" href="public/icon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="public/icon-512.png">
+<link rel="apple-touch-icon" href="public/icon-180.png">
+<meta name="description" content="2,297 prompts across 57 sessions, hung as painted garlands in a carved doorway. Every flower is one prompt.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Prompt माला">
+<meta property="og:description" content="2,297 prompts across 57 sessions, hung as painted garlands in a carved doorway. Every flower is one prompt.">
+<!-- Relative, so it resolves against wherever the piece is served from. Strict
+     scrapers want this absolute; put the deployed URL here if the card matters. -->
+<meta property="og:image" content="public/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Tiro+Devanagari+Hindi&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
 <style>
   :root{
     --paper:#f4efe4;
@@ -14,12 +25,12 @@
     --rule:rgba(20,17,12,0.16); --rule-firm:rgba(20,17,12,0.82);
     --pad:clamp(14px, 3vw, 34px);
 
-    /* Three faces, three jobs. Cormorant is the editorial voice, Tiro carries
-       Devanagari only, DM Sans does all the working text. Each has a local
-       fallback so a failed font load degrades rather than breaks — the piece
-       is otherwise offline-capable and this is its one network dependency. */
+    /* Two faces, two jobs: Cormorant is the editorial voice, DM Sans does all
+       the working text. Both have a local fallback so a failed font load
+       degrades rather than breaks — the piece is otherwise offline-capable and
+       this is its one network dependency. The Devanagari face the lockup used
+       is gone with it; माला is painted now, and nothing else sets Devanagari. */
     --font-display:'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-    --font-deva:'Tiro Devanagari Hindi', 'Noto Sans Devanagari', serif;
     --font-ui:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -48,19 +59,25 @@
   }
 
   /* ---- masthead ---- */
-  #mast{flex:0 0 auto; padding-bottom:9px; border-bottom:1px solid var(--rule-firm);}
-  /* The lockup is two scripts on one line, so each half is set separately and
-     then balanced. Devanagari sits on a lower baseline than Latin at the same
-     point size and its letterforms are lighter, so माला is nudged up and run a
-     little larger to match Prompt in weight and height. */
-  #mast h1.brand{margin:0; display:flex; align-items:baseline; gap:0.22em;
-    line-height:1; white-space:nowrap;}
-  .brand .en{font-family:var(--font-display); font-weight:600;
-    font-size:clamp(28px, 4.6vw, 42px); letter-spacing:-0.012em;}
-  .brand .hi{font-family:var(--font-deva); font-weight:400;
-    font-size:clamp(30px, 4.9vw, 45px); position:relative; top:0.06em;}
-  #mast .stand{margin:7px 0 0; max-width:52ch; font-size:12.5px; line-height:1.4; color:var(--ink-2);}
+  /* The title is the painted lockup, public/logo.webp, not type. It sits on the
+     page rather than in a box of its own: the paper it was painted on has been
+     divided back out into an alpha channel, so what is left is the ink. The
+     lockup is wide, so it stands beside the standfirst instead of over it and
+     costs the piece almost no height. See logo_assets.py. */
+  #mast{flex:0 0 auto; padding-bottom:9px; border-bottom:1px solid var(--rule-firm);
+    display:flex; align-items:flex-end; gap:clamp(14px, 2.6vw, 30px);}
+  #mast h1{margin:0; flex:0 0 auto; line-height:0;}
+  #mast h1 img{display:block; width:clamp(152px, 19vw, 232px); height:auto;}
+  #mast .blurb{flex:1 1 auto; min-width:0; padding-bottom:3px;}
+  #mast .stand{margin:0; max-width:52ch; font-size:12.5px; line-height:1.4; color:var(--ink-2);}
   #mast .dek{margin-top:7px; display:flex; gap:16px; flex-wrap:wrap;}
+
+  /* Side by side, the lockup leaves the standfirst a column too narrow to read. */
+  @media (max-width:620px){
+    #mast{display:block;}
+    #mast h1 img{width:clamp(150px, 46vw, 212px);}
+    #mast .blurb{margin-top:10px;}
+  }
 
   .lbl{font-size:9.5px; font-weight:650; letter-spacing:0.155em; text-transform:uppercase; color:var(--ink-3);}
 
@@ -184,12 +201,15 @@
 
   <div id="main">
     <header id="mast">
-      <h1 class="brand"><span class="en">Prompt</span><span class="hi" lang="hi">माला</span></h1>
-      <p class="stand">Every flower is one prompt. Every garland is one session, read top to
-        bottom in the order it was typed.</p>
-      <div class="dek">
-        <span class="lbl" id="mCount">&nbsp;</span>
-        <span class="lbl">10 Jun &ndash; 5 Oct 2026</span>
+      <h1><img src="public/logo.webp" width="640" height="389" alt="Prompt माला"
+               decoding="async" fetchpriority="high"></h1>
+      <div class="blurb">
+        <p class="stand">Every flower is one prompt. Every garland is one session, read top to
+          bottom in the order it was typed.</p>
+        <div class="dek">
+          <span class="lbl" id="mCount">&nbsp;</span>
+          <span class="lbl">10 Jun &ndash; 5 Oct 2026</span>
+        </div>
       </div>
     </header>
 
@@ -214,7 +234,7 @@
 
   <aside id="side">
     <div id="sEmpty" class="empty">
-      Hover a flower to see what kind of prompt it was. Click one to read it in full here.
+      Hover a flower to read it. Click one to keep it here while you look elsewhere.
     </div>
     <div id="sBody" hidden>
 

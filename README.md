@@ -1,4 +1,4 @@
-# Prompt Mala
+# Prompt माला
 
 An interactive piece where every flower is one prompt, hung as painted garlands in a
 carved doorway. 2,297 prompts across 57 sessions, 10 Jun 2026 – 5 Oct 2026.
@@ -11,8 +11,10 @@ full garland's width. `MIN_BEADS` in `index.html` is the threshold.
 The doorway is a painting, `public/door.png`. Everything hanging in it — every flower, leaf
 and thread — is drawn procedurally into a canvas each frame.
 
-**`index.html` is no longer self-contained.** It needs `public/door.png` and
-`public/indian-ghungroo-shaker-low.wav` beside it. Opened
+The masthead title is a painting too, `public/logo.webp`.
+
+**`index.html` is no longer self-contained.** It needs `public/door.png`,
+`public/logo.webp` and `public/indian-ghungroo-shaker-low.wav` beside it. Opened
 on its own the curtain still draws, but against bare paper with no doorway; the console
 says so. This is a change from how the piece used to work, and it is the cost of using a
 painted door rather than a drawn one.
@@ -21,9 +23,14 @@ painted door rather than a drawn one.
 
 | Path | Publish? | What it is |
 |---|---|---|
-| `index.html` | yes | The piece. Needs `public/door.png` alongside it. |
+| `index.html` | yes | The piece. Needs `public/` alongside it. |
 | `public/door.png` | yes | The painted doorway, 919×1711. 2.2MB. |
 | `public/indian-ghungroo-shaker-low.wav` | yes | The ghungru. 163KB, 0.92s. Loaded on first interaction. |
+| `public/logo.webp` | yes | The masthead lockup, 640×389 on transparency. 38KB. |
+| `public/icon-32.png`, `-180`, `-512` | yes | Favicon, apple-touch icon, and the large one. The P on paper. |
+| `public/og.png` | yes | The social card, 1200×630. |
+| `public/logo-source.webp` | yes | The lockup as painted, on its cream ground, 1536×1024. Source for the four above. |
+| `logo_assets.py` | — | Derives those four from the source. |
 | `public/data/beads.json` | yes | The labelled data as a separate artifact. Labels, numbers and timestamps only. |
 | `private/labeled_prompts_full.json` | **no** | Same records **with the prompt text**. Working file, git-ignored. |
 
@@ -175,8 +182,9 @@ The piece hangs on the left; a reading of one flower sits on the right.
   not the view.
 - **There is no zoom and no pan.** The door holds still, the way a doorway does, and the
   whole of it stays in frame with a little air around it.
-- **Hover** a flower and the side panel reads it straight away — specificity as the
-  headline, then the analysis, then the context. A small label follows the pointer too.
+- **Hover** a flower and the side panel reads it straight away — a score and a verdict,
+  then the three dimensions behind it, what the prompt did well and what it left out. A
+  small label follows the pointer too.
 - **Click** to pin a flower, so the panel holds it when the pointer moves off. Previous/Next
   walk the whole run in order.
 - **Pause motion** freezes the sway; selection keeps working.
@@ -201,90 +209,21 @@ one, so the whole playback path can be rendered into an `OfflineAudioContext` an
 instead of guessed at. Across the drag strengths the piece actually produces (up to 0.12)
 it renders at peaks of 0.10 to 0.40 with no clipping.
 
-## The doorway
-
-The door is `public/door.png` drawn into the scene, not geometry. What the code holds is a
-*measurement* of it: where the opening sits inside the image, and how the carved soffit runs
-across the top. Those numbers are in `DOORIMG`.
-
-They were read off the image rather than guessed. Tracing the dark interior against the
-bright frame works down the left-hand jamb, which is lit; the right-hand jamb falls in
-shadow and no brightness threshold separates it from the carving. The arch is symmetric, so
-the lit half was traced and mirrored.
-
-Everything else follows from that measurement. `PX` sets how many world units one image
-pixel is worth, scaled off `CURTAIN_REACH` — the span of the outermost garland centres plus
-the overhang of the widest head. It is deliberately not scaled off `worldW`, which carries a
-margin at each end: that left the garlands seven per cent short of each jamb, and the arch
-went on curving down past the last one with nothing under it, a visible wedge of empty
-doorway at both shoulders.
-The garland tops come from the soffit, so they hang from the painted arch — and `SOFFIT` is
-*negative*. Each garland starts a little above the soffit, so the clip takes the top off its
-first flower and you see the heads emerging from under the carving. Hung level with the
-arch, or on a visible cord below it, they read as floating in the doorway rather than fixed
-to it. The offset is kept small so even the smallest flower still shows two thirds of
-itself. The thread is pale for the same reason: a brown thread on a brown doorway is
-invisible, and without a visible thread the flowers look like they are hanging on nothing. The opening path
-— down one jamb, across the bottom of the image, up the other, back over the arch — is the
-clip, so nothing strays onto the carving.
-
-A garland longer than the door is cut at the bottom of the image. That is accepted rather
-than fought.
-
-### How big a flower can be
-
-The door is contained, never cropped, so its scale is fixed by the stage. That leaves
-`KIND_D` as the only lever on how big a flower looks, and there is a hard limit behind it:
-57 garlands have to fit across the opening. On a 1300×860 stage the door lands at 448px
-wide, the opening at about 260px, and each garland gets 4.6px of it.
-
-`KIND_D` is deliberately set wider than `STRAND_GAP` — the largest head is 2.1× the pitch —
-so neighbouring garlands overlap and the curtain reads as a thick mass of flowers rather
-than rows of dots. That is also how a real garland looks. Pushing it further keeps making
-the flowers bigger, at the cost of being able to follow any single garland down.
-
-The other lever is fewer garlands: raising `MIN_BEADS` drops more short sessions and gives
-every remaining one more room.
-
-## Interaction
-
-The piece hangs on the left; a reading of one flower sits on the right.
-
-- **Drag** across the garlands — they sway and rustle softly. Dragging moves the flowers,
-  not the view.
-- **There is no zoom and no pan.** The door holds still, the way a doorway does, and the
-  whole of it stays in frame with a little air around it.
-- **Hover** a flower and the side panel reads it straight away — specificity as the
-  headline, then the analysis, then the context. A small label follows the pointer too.
-- **Click** to pin a flower, so the panel holds it when the pointer moves off. Previous/Next
-  walk the whole run in order.
-- **Pause motion** freezes the sway; selection keeps working.
-
-Small brass **ghungrus** are strung between the flowers. They are decoration and carry no
-data, so they live in their own list rather than in `beads` — which is the whole reason hit
-testing never picks one up, with no special case needed.
-
-Brushing the garlands rings them. A ghungru is not a bell you strike, it is a loose pellet
-rattling inside a small shell, so the sound is **dry** (about 40ms, not a 200ms tail),
-**noisy** (resonant filtered noise, not oscillator partials) and **many** (a handful of
-shells at slightly different pitches, never one clean tone). Built with oscillators and a
-long decay it comes out as a chime, which is a different instrument.
-
-`ringGhungru` takes its audio context as an argument rather than reaching for the global
-one, so it can be rendered into an `OfflineAudioContext` and measured. It should come out
-around 40ms long with a spectral centroid near 4.5kHz; a struck bell would be 200ms+ and
-much lower. The makeup gain in it is not a guess — a high-Q bandpass throws away most of
-the noise energy, and without it the whole thing renders at a peak of about 0.02 and is
-inaudible.
-
 Under 860px wide the panel stacks underneath and stays shut until you pick a flower, so
 it does not eat half the piece while empty. The piece itself keeps a floor of 190px and the
 key scrolls, so a short window can never squeeze the canvas to nothing.
 
-The analysis bars fill to where a label sits on its own scale, in the direction of the
-thing named — Specificity full is *specific*, Bundling full is *many asks*. The value
-printed is always the label. There is deliberately no 0–100 score: these are keyword
-heuristics, and a number would imply precision they do not have.
+The reading opens with a **Prompt Score** out of 10 — a weighted roll-up of the four
+labels the garland already draws from (specificity, clarity, grounding, bundling), so the
+number and the flower can never disagree. It is a roll-up of heuristics rather than a
+measurement, and the panel says as much underneath it. The three dimensions below are the
+ones the data actually carries, each with its label printed beside the bar rather than a
+bare percentage. Actionability was cut: computed from the same four labels, it read as a
+fourth opinion while being a restatement of the other three.
+
+Two things the panel could show are absent rather than filled in. Nothing in the data
+records what the author *wanted* out of a prompt, and no model response was ever captured,
+so the piece cannot say whether the ask landed. Both would have been easy to invent.
 
 ## Privacy
 
@@ -306,6 +245,28 @@ for the new payload.
 **Edit the template, not `index.html`.** They are the same file apart from those three
 lines, so a change made only to `index.html` is silently discarded the next time the
 data is re-injected.
+
+### The logo
+
+`public/logo-source.webp` is the lockup as painted, on a cream ground a shade darker than
+the site's paper. Dropped into the masthead as it is, that ground reads as a box around
+the title, so `logo_assets.py` divides it back out: the lockup is ink on paper, so how far
+a pixel falls below the paper colour is how much ink is there, and that becomes the alpha
+channel. The result is trimmed to the artwork and written out as `logo.webp`, the three
+icons and the social card.
+
+    python3 logo_assets.py
+
+It is the one script here that is not stdlib-only: it wants Pillow and NumPy. Nothing
+else in the repo does, and the assets are checked in, so there is no need to run it
+unless the artwork changes.
+
+Composited over the ground it came from, the transparent version reproduces the source
+exactly. It is not meant for dark backgrounds — the pale flowers in the lockup are pale
+*ink*, and they go dark if you put them on ink.
+
+`og:image` is a relative path, which most scrapers resolve against the page. Strict ones
+want it absolute; set the deployed URL in both HTML files if the social card matters.
 
 ## Caveats
 
