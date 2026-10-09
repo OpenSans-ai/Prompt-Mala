@@ -134,8 +134,10 @@
   /* Pressed, not inverted: these report a state the piece is already showing. */
   #tools button.on{background:rgba(20,17,12,0.15); color:var(--ink);
     border-color:rgba(20,17,12,0.34);}
-  /* Every glyph is drawn in strokes — a slash across the same shape is what
-     separates sound from no sound, and motion from no motion. */
+  /* Both pairs are the same glyph struck through when off. The motion glyph is
+     the curtain itself — three hanging strands with a sway in them — since what
+     the control stops is the garlands' own movement, not a playhead the reader
+     started. */
   #tools svg{display:block; width:15px; height:15px; fill:none; stroke:currentColor;
     stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round;}
   #tools svg[hidden]{display:none;}
@@ -310,8 +312,8 @@
         <div id="tools">
           <button id="tPause" type="button" aria-pressed="false"
                   aria-label="Pause motion" title="Pause motion">
-            <svg class="i-motion" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.9 5.1h6.5a1.9 1.9 0 1 0-1.9-1.9"></path><path d="M1.9 8h8.2a2 2 0 1 1-2 2"></path><path d="M1.9 10.9h4.4"></path></svg>
-            <svg class="i-still" viewBox="0 0 16 16" aria-hidden="true" hidden><path d="M1.9 5.1h6.5a1.9 1.9 0 1 0-1.9-1.9"></path><path d="M1.9 8h8.2a2 2 0 1 1-2 2"></path><path d="M1.9 10.9h4.4"></path><path d="M2.7 13.3 13.3 2.7"></path></svg>
+            <svg class="i-sway" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.6q1.7 2.6 0 5.2t0 5.6"></path><path d="M8 2.6q-1.7 2.6 0 5.2t0 5.6"></path><path d="M12 2.6q1.7 2.6 0 5.2t0 5.6"></path></svg>
+            <svg class="i-still" viewBox="0 0 16 16" aria-hidden="true" hidden><path d="M4 2.6q1.7 2.6 0 5.2t0 5.6"></path><path d="M8 2.6q-1.7 2.6 0 5.2t0 5.6"></path><path d="M12 2.6q1.7 2.6 0 5.2t0 5.6"></path><path d="M2.4 13.6 13.6 2.4"></path></svg>
           </button>
           <button id="tMute" type="button" aria-pressed="false"
                   aria-label="Mute sound" title="Mute sound">
@@ -1807,14 +1809,22 @@ function cap(w){ return w.charAt(0).toUpperCase() + w.slice(1); }
 // The controls are icons, so the label they carry is the accessible name and
 // the tooltip rather than anything drawn. Both icons live in the button and one
 // is hidden, which keeps the swap off the markup-building path.
+// `hidden` is an HTMLElement property and an SVG element is not one, so
+// `svg.hidden = true` quietly sets a plain JS property, never reaches the
+// content attribute, and the stylesheet never sees it: the glyph the markup
+// shipped stays on screen for good while the property flips underneath. The
+// attribute has to be set by hand.
+function showGlyph(el, show){
+  if (show) el.removeAttribute('hidden'); else el.setAttribute('hidden', '');
+}
 function setToggle(btn, on, label){
   btn.classList.toggle('on', on);
   btn.setAttribute('aria-pressed', on ? 'true' : 'false');
   btn.setAttribute('aria-label', label);
   btn.setAttribute('title', label);
   const icons = btn.querySelectorAll('svg');
-  icons[0].hidden = on;
-  icons[1].hidden = !on;
+  showGlyph(icons[0], !on);
+  showGlyph(icons[1], on);
 }
 
 const tPause = document.getElementById('tPause');
