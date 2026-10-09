@@ -223,22 +223,23 @@
     font-size:clamp(22px,2.2vw,27px); line-height:1.1; letter-spacing:-0.014em;}
   .scoreText p{margin:7px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2);}
 
-  /* ---- what the flower under the pointer is ----
-     This is the key, and it is specific: the species and how far open the
-     head is, each with what it stands for beside it. The art is painted with
-     the curtain's own renderer at the real size of its tier, so neither the
-     drawing nor the words can drift from the garlands, and the size itself is
-     legible as the thing it encodes. */
-  .flRow{display:flex; gap:13px; align-items:flex-start;}
+  /* ---- what the flower under the pointer stands for ----
+     This is the key, and it is specific: the phase this flower is drawn for,
+     the reading its size reports, and which mark carries each. It says what
+     the two marks mean rather than what they are called — the drawing is in
+     front of the reader and the meaning is not — which is also what gets it
+     down to two lines against the art. The art is painted with the curtain's
+     own renderer at the real size of its tier, so neither the drawing nor the
+     words can drift from the garlands, and the size is legible as the thing
+     it encodes. */
+  .flRow{display:flex; gap:13px; align-items:center;}
   .flArt{flex:0 0 54px; height:54px; display:flex; align-items:center;
     justify-content:center;}
   .flArt canvas{display:block;}
-  .flTxt{flex:1 1 auto; min-width:0;}
-  .fct{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
-    margin:0; font-size:12.5px; font-weight:500;}
-  .fct i{font-style:normal; font-weight:400; color:var(--ink-2); text-align:right;}
-  .fct + .note{margin-top:2px;}
-  .note + .fct{margin-top:7px;}
+  .flTxt{flex:1 1 auto; min-width:0; display:grid;
+    grid-template-columns:max-content auto; gap:6px 11px; align-items:baseline;}
+  .fv{font-size:12.5px; font-weight:500;}
+  .fm{font-size:11.5px; color:var(--ink-3);}
 
   /* Intent and style were two sections saying one thing — what the prompt was
      for, and how it was put — with a label and a rule between them. One
@@ -403,11 +404,6 @@ const STRAND_GAP = 27, MARGIN = 30, PAD_W = 9;
 // one of those labels is still available in full on the right — this is about
 // what the eye has to carry, not about throwing data away.
 const QUALITY_NAMES = ['rough','mixed','solid','sharp'];
-// How far open the head is, in words, and where that tier sits in the ramp.
-// The panel is the only key the piece has, so these are the names a reader is
-// given for what the drawing is doing.
-const OPEN_NAMES = ['Tight bud','Half open','Full bloom','Wide open'];
-const SIZE_NOTE  = ['smallest of four','second of four','third of four','largest of four'];
 // A better prompt is a bigger flower, and that is the only thing size says.
 // The form of each species no longer changes with it — a marigold is always a
 // marigold, just larger or smaller.
@@ -1499,11 +1495,11 @@ const SPEC_NOTE = [
 ];
 function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]); }
 
-// One line of the key: what the mark is, what it stands for, and a note under
-// it. Used twice — once for the species, once for how open the head is.
-function facet(name, value, note){
-  return '<p class="fct">' + esc(name) + '<i>' + esc(value) + '</i></p>' +
-    '<p class="note">' + esc(note) + '</p>';
+// One line of the key: what a mark stands for, and which mark says it. Used
+// twice — once for the species, once for the size of the head.
+function facet(value, mark){
+  return '<span class="fv">' + esc(value) + '</span>' +
+         '<span class="fm">' + esc(mark) + '</span>';
 }
 
 // The key, painted. Drawn through the curtain's own sprite maker rather than
@@ -1679,10 +1675,8 @@ function showPanel(b){
     art.replaceChildren(paintFlower(b.phase, b.kind, ART_PX[b.kind]));
   }
   $('sFacets').innerHTML =
-    facet(cap(BLOOM[b.phase].name), LEGEND.phase[b.phase],
-          'One species per phase. The colour says nothing else.') +
-    facet(OPEN_NAMES[b.kind], QUALITY_NAMES[b.kind],
-          'Openness carries the whole reading \u2014 ' + SIZE_NOTE[b.kind] + '.');
+    facet(LEGEND.phase[b.phase], 'its flower') +
+    facet(cap(QUALITY_NAMES[b.kind]), 'its size');
 
   // Intent and style in one section: the task and the number of asks as a
   // line, the style as tags under it. There is no Goal — nothing in the data

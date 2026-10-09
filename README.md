@@ -98,11 +98,16 @@ the panel.
 There is no key beside the piece. There used to be: a strip of eight swatches, four species
 and four degrees of openness, that a reader had to hold in their head and carry back to the
 curtain. It now lives in the panel as **This Flower**, and reads the one flower under the
-pointer — which species it is and what that says, how far open the head is and what that
-says — painted at the real diameter of its tier so the size on the page is the size being
+pointer, painted at the real diameter of its tier so the size on the page is the size being
 explained. A key that can be specific does not have to be general, and the artwork takes
-the width the strip was using. The swatch still goes through the curtain's own sprite maker,
-so it cannot drift from what is on screen.
+the width the strip was using. The swatch goes through the curtain's own sprite maker, so
+it cannot drift from what is on screen.
+
+It is two lines: the phase this flower is drawn for, and the reading its size reports, each
+with the mark that carries it beside it — *Setup, its flower* and *Mixed, its size*. What
+the species is called, and whether the head is a bud or wide open, are not printed: the
+drawing is in front of the reader and only its meaning is missing. That is also what keeps
+the key to two lines in a panel that has five other things to say.
 
 ## How a flower is painted
 
