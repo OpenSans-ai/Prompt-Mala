@@ -144,8 +144,13 @@
      rest, which is most of the window. */
   #work{flex:1 1 auto; min-height:0; display:flex; align-items:stretch;
     gap:clamp(14px, 2.2vw, 34px); margin-top:10px;}
+  /* The key sits at the foot of the column, not level with the middle of the
+     doorway: down here it reads as a caption to the piece rather than as a
+     second thing competing with it across the centre line. The padding is the
+     room the hint needs underneath. */
   #keyside{flex:0 0 clamp(132px, 13vw, 168px); min-width:0; position:relative;
-    display:flex; flex-direction:column; justify-content:center;}
+    display:flex; flex-direction:column; justify-content:flex-end;
+    padding-bottom:48px;}
   /* The hint sits out of the centring and against the foot of the column.
      Inside it, it is part of what gets centred and pushes the key itself above
      the middle of the doorway. */
@@ -179,7 +184,8 @@
   @media (max-width:860px){
     #work{flex-direction:column; gap:14px; margin-top:8px;}
     #stage{order:1; min-height:220px;}
-    #keyside{order:2; flex:0 0 auto; justify-content:flex-start; position:static;}
+    #keyside{order:2; flex:0 0 auto; justify-content:flex-start; position:static;
+      padding-bottom:0;}
     #legend{flex-direction:row; align-items:flex-start; gap:clamp(22px, 7vw, 54px);}
     /* Content-width groups here, so auto-fit sees no room and drops the types
        to one tall column. Two is the right shape for a strip. */
