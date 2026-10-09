@@ -1113,71 +1113,46 @@ function unlock(){
     if (AC) actx = new AC();
   }
   if (actx && actx.state === 'suspended') actx.resume();
+  loadGhungroo();
 }
-// A ghungru is not a bell you strike — it is a loose pellet rattling inside a
-// small metal shell. That means:
+// The ghungru is a recording, public/indian-ghungroo-shaker-low.wav, not
+// something synthesised. An earlier pass built one out of filtered noise and it
+// was close but never quite right — a real shell has a rattle in it that is
+// hard to fake.
 //
-//   dry      the whole thing is over in well under a tenth of a second. An
-//            earlier pass used sine partials with a 200ms tail and came out as
-//            a chime or a temple bell, which is a different instrument
-//   noisy    a rattling pellet is broadband, not a set of clean partials. The
-//            body here is resonant filtered noise, not oscillators
-//   many     an anklet is dozens of shells, so one contact is a cluster of
-//            tiny impacts at slightly different pitches, never a single tone
-//
-// A short noise buffer is made once and replayed at varying rates, which is
-// cheaper than building one per grain and gives the pellets their pitch spread.
-let rattleBuf = null, rattleFor = null;
-function getRattle(ctx){
-  if (rattleBuf && rattleFor === ctx) return rattleBuf;   // buffers belong to a context
-  const len = Math.floor(ctx.sampleRate * 0.05);
-  rattleBuf = ctx.createBuffer(1, len, ctx.sampleRate);
-  rattleFor = ctx;
-  const ch = rattleBuf.getChannelData(0);
-  for (let i = 0; i < len; i++){
-    const env = Math.pow(1 - i/len, 7);          // very fast decay
-    ch[i] = (Math.random()*2 - 1) * env;
-  }
-  return rattleBuf;
+// The sample is a single shake: it peaks around 50ms, is down to 6% by 160ms
+// and silent after about 400ms. That envelope is why it can be fired per
+// contact without the tails piling into mush.
+const GHUNGROO_SRC = 'public/indian-ghungroo-shaker-low.wav';
+let ghungrooBuf = null, ghungrooTried = false;
+
+function loadGhungroo(){
+  if (ghungrooTried || !actx) return;
+  ghungrooTried = true;
+  fetch(GHUNGROO_SRC)
+    .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.arrayBuffer(); })
+    .then(b => actx.decodeAudioData(b))
+    .then(buf => { ghungrooBuf = buf; })
+    .catch(err => console.warn('ghungroo sample not loaded, the garlands will be silent:', err.message));
 }
 
-// Takes the context so it can be rendered offline and measured, rather than
-// only ever going straight to the speakers where it cannot be checked.
+// Playback rate carries most of the variation. Without it every contact is the
+// identical recording and the ear picks that up immediately as a loop.
 function ringGhungru(ctx, t0, vol){
-  const v = Math.min(0.3, vol);
-  const buf = getRattle(ctx);
-  const grains = 4 + (Math.random()*3 | 0);      // a handful of shells, not one
+  if (!ghungrooBuf) return;
+  const src = ctx.createBufferSource();
+  src.buffer = ghungrooBuf;
+  src.playbackRate.value = 0.86 + Math.random() * 0.34;
 
-  for (let n = 0; n < grains; n++){
-    const t = t0 + Math.random() * 0.018;        // scattered, never in step
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.playbackRate.value = 0.8 + Math.random()*0.9;
+  const g = ctx.createGain();
+  const v = Math.min(0.9, vol * 5.2);
+  g.gain.setValueAtTime(v, t0);
+  // let it ring, but not past the point where the recording is silence anyway
+  g.gain.setTargetAtTime(0.0001, t0 + 0.26, 0.09);
 
-    // the shell: a high resonant peak is what makes it read as small and metal
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.frequency.value = 3400 + Math.random()*3200;
-    bp.Q.value = 9 + Math.random()*11;
-
-    // and a little air above it, so it glitters rather than thuds
-    const hp = ctx.createBiquadFilter();
-    hp.type = 'highpass';
-    hp.frequency.value = 2200;
-
-    const g = ctx.createGain();
-    // Makeup gain: a high-Q bandpass throws away most of the noise energy, so
-    // without this the whole thing renders at a peak of about 0.02 and is
-    // effectively inaudible. Measured offline rather than guessed.
-    const amp = v * (0.35 + Math.random()*0.65) * 7.5 / Math.sqrt(grains);
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(amp, t + 0.001);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.035 + Math.random()*0.03);
-
-    src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(ctx.destination);
-    src.start(t);
-    src.stop(t + 0.09);
-  }
+  src.connect(g); g.connect(ctx.destination);
+  src.start(t0);
+  src.stop(t0 + 0.55);
 }
 
 function clickSound(vol){

@@ -11,7 +11,8 @@ full garland's width. `MIN_BEADS` in `index.html` is the threshold.
 The doorway is a painting, `public/door.png`. Everything hanging in it — every flower, leaf
 and thread — is drawn procedurally into a canvas each frame.
 
-**`index.html` is no longer self-contained.** It needs `public/door.png` beside it. Opened
+**`index.html` is no longer self-contained.** It needs `public/door.png` and
+`public/indian-ghungroo-shaker-low.wav` beside it. Opened
 on its own the curtain still draws, but against bare paper with no doorway; the console
 says so. This is a change from how the piece used to work, and it is the cost of using a
 painted door rather than a drawn one.
@@ -22,6 +23,7 @@ painted door rather than a drawn one.
 |---|---|---|
 | `index.html` | yes | The piece. Needs `public/door.png` alongside it. |
 | `public/door.png` | yes | The painted doorway, 919×1711. 2.2MB. |
+| `public/indian-ghungroo-shaker-low.wav` | yes | The ghungru. 163KB, 0.92s. Loaded on first interaction. |
 | `public/data/beads.json` | yes | The labelled data as a separate artifact. Labels, numbers and timestamps only. |
 | `private/labeled_prompts_full.json` | **no** | Same records **with the prompt text**. Working file, git-ignored. |
 
@@ -119,6 +121,85 @@ stops the gradients beneath reading as vector art.
 
 Because only the phase varies per flower now, the sprite cache collapsed from about 1,200
 entries to 43 — four flowers times four degrees of openness times the zoom steps.
+
+## The doorway
+
+The door is `public/door.png` drawn into the scene, not geometry. What the code holds is a
+*measurement* of it: where the opening sits inside the image, and how the carved soffit runs
+across the top. Those numbers are in `DOORIMG`.
+
+They were read off the image rather than guessed. Tracing the dark interior against the
+bright frame works down the left-hand jamb, which is lit; the right-hand jamb falls in
+shadow and no brightness threshold separates it from the carving. The arch is symmetric, so
+the lit half was traced and mirrored.
+
+Everything else follows from that measurement. `PX` sets how many world units one image
+pixel is worth, scaled off `CURTAIN_REACH` — the span of the outermost garland centres plus
+the overhang of the widest head. It is deliberately not scaled off `worldW`, which carries a
+margin at each end: that left the garlands seven per cent short of each jamb, and the arch
+went on curving down past the last one with nothing under it, a visible wedge of empty
+doorway at both shoulders.
+The garland tops come from the soffit, so they hang from the painted arch — and `SOFFIT` is
+*negative*. Each garland starts a little above the soffit, so the clip takes the top off its
+first flower and you see the heads emerging from under the carving. Hung level with the
+arch, or on a visible cord below it, they read as floating in the doorway rather than fixed
+to it. The offset is kept small so even the smallest flower still shows two thirds of
+itself. The thread is pale for the same reason: a brown thread on a brown doorway is
+invisible, and without a visible thread the flowers look like they are hanging on nothing. The opening path
+— down one jamb, across the bottom of the image, up the other, back over the arch — is the
+clip, so nothing strays onto the carving.
+
+A garland longer than the door is cut at the bottom of the image. That is accepted rather
+than fought.
+
+### How big a flower can be
+
+The door is contained, never cropped, so its scale is fixed by the stage. That leaves
+`KIND_D` as the only lever on how big a flower looks, and there is a hard limit behind it:
+57 garlands have to fit across the opening. On a 1300×860 stage the door lands at 448px
+wide, the opening at about 260px, and each garland gets 4.6px of it.
+
+`KIND_D` is deliberately set wider than `STRAND_GAP` — the largest head is 2.1× the pitch —
+so neighbouring garlands overlap and the curtain reads as a thick mass of flowers rather
+than rows of dots. That is also how a real garland looks. Pushing it further keeps making
+the flowers bigger, at the cost of being able to follow any single garland down.
+
+The other lever is fewer garlands: raising `MIN_BEADS` drops more short sessions and gives
+every remaining one more room.
+
+## Interaction
+
+The piece hangs on the left; a reading of one flower sits on the right.
+
+- **Drag** across the garlands — they sway and rustle softly. Dragging moves the flowers,
+  not the view.
+- **There is no zoom and no pan.** The door holds still, the way a doorway does, and the
+  whole of it stays in frame with a little air around it.
+- **Hover** a flower and the side panel reads it straight away — specificity as the
+  headline, then the analysis, then the context. A small label follows the pointer too.
+- **Click** to pin a flower, so the panel holds it when the pointer moves off. Previous/Next
+  walk the whole run in order.
+- **Pause motion** freezes the sway; selection keeps working.
+
+Small brass **ghungrus** are strung between the flowers. They are decoration and carry no
+data, so they live in their own list rather than in `beads` — which is the whole reason hit
+testing never picks one up, with no special case needed.
+
+Brushing the garlands rings them, using a recording: `public/indian-ghungroo-shaker-low.wav`.
+It is a single shake — it peaks around 50ms, is down to 6% by 160ms and silent after about
+400ms — and that envelope is why it can be fired per contact without the tails piling into
+mush. Playback rate is varied per contact, because otherwise every contact is the identical
+recording and the ear picks that up immediately as a loop.
+
+An earlier version synthesised the sound instead. The first attempt was a struck bell —
+sine partials with a long tail — which is a chime, a different instrument. The second got
+much closer with resonant filtered noise, dry and bright, but a real shell has a rattle in
+it that is hard to fake. The recording replaced both.
+
+`ringGhungru` takes its audio context as an argument rather than reaching for the global
+one, so the whole playback path can be rendered into an `OfflineAudioContext` and measured
+instead of guessed at. Across the drag strengths the piece actually produces (up to 0.12)
+it renders at peaks of 0.10 to 0.40 with no clipping.
 
 ## The doorway
 
