@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Rozha+One&family=Tiro+Devanagari+Hindi&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Rozha+One&family=Tiro+Devanagari+Hindi&display=swap">
 <style>
   :root{
     --paper:#f4efe4;
@@ -25,19 +25,20 @@
     --rule:rgba(20,17,12,0.16); --rule-firm:rgba(20,17,12,0.82);
     --pad:clamp(14px, 3vw, 34px);
 
-    /* Four faces, four jobs: Rozha One is the title and only the title,
-       Cormorant is the editorial voice inside the panel, Tiro sets Devanagari
-       and nothing else, DM Sans does all the working text. Each has a local
-       fallback so a failed font load degrades rather than breaks — the piece is
+    /* Three faces, three jobs: Rozha One is every display line — the title,
+       the score, the verdict, the character — Tiro sets Devanagari and nothing
+       else, and DM Sans does all the working text. Each has a local fallback
+       so a failed font load degrades rather than breaks: the piece is
        otherwise offline-capable and this is its one network dependency. Tiro
-       carries one word, माला in the standfirst: without it the Devanagari falls
-       back to a system face and sits visibly apart from the Latin around it.
+       carries one word, माला in the standfirst, without which the Devanagari
+       falls back to a system face and sits visibly apart from the Latin
+       around it.
        Rozha One is a Devanagari-and-Latin display face, which is the reason
-       for it — the title is set in a face drawn alongside the script the piece
-       is named in. It ships one weight and no italic, so the title is upright
-       where it used to be italic 700. */
-    --font-title:'Rozha One', 'Cormorant Garamond', Georgia, serif;
-    --font-display:'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+       for it: the piece's display voice is a face drawn alongside the script
+       it is named in. It ships one weight and no italic, so every line set in
+       it is upright at 400 where Cormorant was 600, and two of them were
+       italic. Cormorant is not fetched any more. */
+    --font-display:'Rozha One', Georgia, 'Times New Roman', serif;
     --font-deva:'Tiro Devanagari Hindi', 'Noto Sans Devanagari', serif;
     --font-ui:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
@@ -112,7 +113,7 @@
      line even while the webfont is still loading and the fallback is measuring
      wider. Below the breakpoint it is allowed to wrap: holding one line there
      would mean type too small to read. */
-  #mast .lede{margin:0; font-family:var(--font-title); font-weight:400;
+  #mast .lede{margin:0; font-family:var(--font-display); font-weight:400;
     font-size:clamp(15px, calc(3.95vw - 16.5px), 31px);
     line-height:1.22; white-space:nowrap; color:var(--ink);}
   /* `pretty` keeps the last line from being a single word. It is not supported
@@ -234,14 +235,15 @@
   .dialTrack{stroke:rgba(20,17,12,0.10);}
   .dialFill{stroke:#C8761C; stroke-linecap:round; transition:stroke-dashoffset .45s cubic-bezier(.2,.85,.25,1);}
   .dial span{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-display); font-weight:600; letter-spacing:-0.02em;
+    font-family:var(--font-display); font-weight:400;
     font-size:clamp(23px, 3.4vh, 35px);
-    /* Cormorant ships old-style figures by default, which renders 10.0 as
-       something closer to IO.O. The score has to read as a number. */
+    /* A display face may ship old-style figures by default, which would
+       render 10.0 as something closer to IO.O. The score has to read as a
+       number. */
     font-variant-numeric:lining-nums tabular-nums;}
   .scoreText{flex:1 1 auto; min-width:0;}
-  .scoreText h2{margin:0; font-family:var(--font-display); font-weight:600;
-    font-size:clamp(23px,2.4vw,31px); line-height:1.1; letter-spacing:-0.014em;}
+  .scoreText h2{margin:0; font-family:var(--font-display); font-weight:400;
+    font-size:clamp(21px,2.1vw,27px); line-height:1.12;}
   /* An aside on the score, in the panel's working face. Prompt Character is
      the serif italic further down and says something else — when the prompt
      was typed, where it fell in the session — so the two are not competing
@@ -289,9 +291,12 @@
   .fix{margin:0; font-size:12.5px; line-height:1.5; color:var(--ink-2);
     padding-left:11px; border-left:2px solid rgba(200,118,28,0.5);}
 
-  /* the one place the panel is allowed to be playful */
-  .rang h3{margin:0; font-family:var(--font-display); font-weight:600; font-style:italic;
-    font-size:16.5px; line-height:1.2; letter-spacing:-0.008em;}
+  /* The one place the panel is allowed to be playful. It was the serif italic
+     when there was an italic to have; on a face with one upright cut it is the
+     only line in the panel at display size besides the score, which is enough
+     to set it apart from the working text under it. */
+  .rang h3{margin:0; font-family:var(--font-display); font-weight:400;
+    font-size:17px; line-height:1.22;}
   .rang p{margin:5px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2);}
 
   /* The column is taller than the reading on most windows. That slack used to

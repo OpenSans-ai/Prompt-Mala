@@ -16,11 +16,13 @@ than over it, and the band is deliberately short: a title, one sentence saying w
 flower and a garland are, and the archive's counts on one quiet line. Everything else about
 the piece is in the artwork or in the panel.
 
-The title is set in **Rozha One**, a Devanagari-and-Latin display face, which is the reason
-for it: the title is in a face drawn alongside the script the piece is named in. It ships
-one weight and no italic, so the title is upright where it used to be Cormorant italic 700.
-Cormorant is down to the two cuts the panel still uses, 600 upright and 600 italic, which
-is six fewer than the old request.
+Every display line is set in **Rozha One** — the title, the score, the verdict, Prompt
+Character. It is a Devanagari-and-Latin display face, which is the reason for it: the
+piece's display voice is a face drawn alongside the script it is named in. It ships one
+weight and no italic, so each of those lines is upright at 400 where Cormorant Garamond was
+600, and two of them were italic. Cormorant is not fetched any more; the page now asks for
+three families where it used to ask for four, and for three cuts of Cormorant that nothing
+was setting.
 
 The title is held to one line by `nowrap`, at a size fitted to the column rather than
 fixed — it wants about 18.5x its own font size in width, and the column is the window less
@@ -254,8 +256,10 @@ the same footing as the step between sections, so a window with height to spare 
 on the thing the reading opens with rather than on air. Under the verdict is one light
 line, three per band picked by the flower's own index so neighbours differ. It is an aside
 on the score and nothing else — in particular it never says what came back, since no
-response was ever captured. Prompt Character, further down, is the serif italic and
-answers a different question: when the prompt was typed and where it fell in the session.
+response was ever captured. Prompt Character, further down, answers a different question —
+when the prompt was typed and where it fell in the session — and is told apart by being set
+in the display face rather than by a voice of its own, now that there is no italic to give
+it one.
 
 Intent and style are one section. Split, they were two labels and a rule around a single
 thought — what the prompt was for, and how it was put — and the reader had to carry the
