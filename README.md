@@ -16,8 +16,14 @@ than over it, and the band is deliberately short: a title, one sentence saying w
 flower and a garland are, and the archive's counts on one quiet line. Everything else about
 the piece is in the artwork or in the panel.
 
+The title is set in **Rozha One**, a Devanagari-and-Latin display face, which is the reason
+for it: the title is in a face drawn alongside the script the piece is named in. It ships
+one weight and no italic, so the title is upright where it used to be Cormorant italic 700.
+Cormorant is down to the two cuts the panel still uses, 600 upright and 600 italic, which
+is six fewer than the old request.
+
 The title is held to one line by `nowrap`, at a size fitted to the column rather than
-fixed — it wants about 17.5x its own font size in width, and the column is the window less
+fixed — it wants about 18.5x its own font size in width, and the column is the window less
 the panel, so the fit is stated in `vw`. Below 860px the panel is gone and the masthead has
 the whole window; without a rule of its own there the title goes on shrinking past the
 breakpoint as though the panel were still taking its 292px.
