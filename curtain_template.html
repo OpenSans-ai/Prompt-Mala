@@ -277,15 +277,21 @@
     border:1px solid var(--rule); border-radius:999px; color:var(--ink-2);
     background:rgba(200,118,28,0.05);}
 
-  .dim{margin-bottom:8px;}
+  /* Three readings stacked, each a heading, a bar and a note. Set tight they
+     ran together into one block of six lines and three rules, and which note
+     belonged to which bar was a matter of reading carefully. The gap between
+     readings carries the window's height like the one between sections does,
+     at about half its size — enough to separate them, never enough to be
+     mistaken for the end of the section. */
+  .dim{margin-bottom:clamp(8px, 2vh - 5px, 16px);}
   .dim:last-child{margin-bottom:0;}
   .dimHd{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
-    font-size:12.5px; font-weight:500; margin-bottom:5px;}
+    font-size:12.5px; font-weight:500; margin-bottom:6px;}
   .dimHd .g{color:var(--ink-2); font-weight:400;}
   .dim .tr{height:4px; background:rgba(20,17,12,0.08); position:relative; border-radius:2px;}
   .dim .fl{position:absolute; left:0; top:0; bottom:0; background:var(--ink); border-radius:2px;
     transition:width .3s cubic-bezier(.2,.85,.25,1);}
-  .dim .note{margin:3px 0 0;}
+  .dim .note{margin:4px 0 0;}
 
   .miss{margin:0; font-size:12.5px; line-height:1.5; color:var(--ink);}
   .fix{margin:0; font-size:12.5px; line-height:1.5; color:var(--ink-2);
