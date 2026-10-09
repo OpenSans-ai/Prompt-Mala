@@ -404,6 +404,13 @@ const STRAND_GAP = 27, MARGIN = 30, PAD_W = 9;
 // one of those labels is still available in full on the right — this is about
 // what the eye has to carry, not about throwing data away.
 const QUALITY_NAMES = ['rough','mixed','solid','sharp'];
+// The two glosses the panel's key runs on: what a phase was, and what a
+// reading at that tier amounts to. Short enough to sit on one line beside the
+// word they gloss.
+const PHASE_GLOSS = ['how it looks', 'config and tooling',
+                     'something broken', 'how it behaves'];
+const TIER_GLOSS  = ['vague or scattered', 'partly specified',
+                     'clear and focused', 'as good as they get'];
 // A better prompt is a bigger flower, and that is the only thing size says.
 // The form of each species no longer changes with it — a marigold is always a
 // marigold, just larger or smaller.
@@ -1495,11 +1502,12 @@ const SPEC_NOTE = [
 ];
 function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]); }
 
-// One line of the key: what a mark stands for, and which mark says it. Used
-// twice — once for the species, once for the size of the head.
-function facet(value, mark){
+// One line of the key: what a mark stands for, and what that amounts to in
+// three words. Used twice — once for the species, once for the size of the
+// head.
+function facet(value, gloss){
   return '<span class="fv">' + esc(value) + '</span>' +
-         '<span class="fm">' + esc(mark) + '</span>';
+         '<span class="fm">' + esc(gloss) + '</span>';
 }
 
 // The key, painted. Drawn through the curtain's own sprite maker rather than
@@ -1541,14 +1549,6 @@ const VERDICTS = [
   [0,   'Needs more context']
 ];
 
-// phase -> what the prompt was working on, generalised, no names
-const TASK_OF = [
-  'Shaping how it looks',
-  'Setting the ground up',
-  'Chasing something broken',
-  'How it behaves and feels'
-];
-
 function grade(v){ return v >= 0.8 ? 'High' : v >= 0.55 ? 'Good' : v >= 0.3 ? 'Moderate' : 'Needs work'; }
 
 function readFlower(b){
@@ -1578,8 +1578,6 @@ function readFlower(b){
   if (b.spec === 3) tags.push('Open-ended');
   if (b.wc <= 8) tags.push('Concise');
   if (b.wc >= 30) tags.push('Detailed');
-  if (b.bundle === 0) tags.push('Focused');
-  if (b.bundle === 2) tags.push('Multi-part');
   if (b.ground > 0) tags.push('Context-rich');
   if (b.clarity === 0 && b.spec <= 1) tags.push('Direct');
   if (b.ord > 0 && b.gap >= 0 && b.gap < 180) tags.push('Iterative');
@@ -1637,8 +1635,7 @@ function readFlower(b){
   else if (b.bundle === 0)                      rang = ['One Thing at a Time', 'A single ask, not a list.'];
   else                                          rang = ['In the Thick of It', 'Flower ' + (b.ord+1) + ' of ' + b.slen + ' in this garland.'];
 
-  return { score, verdict, dims, tags: tags.slice(0, 4), missing, rang,
-           task: TASK_OF[b.phase] };
+  return { score, verdict, dims, tags: tags.slice(0, 4), missing, rang };
 }
 
 const sEmpty = document.getElementById('sEmpty'), sBody = document.getElementById('sBody');
@@ -1675,14 +1672,14 @@ function showPanel(b){
     art.replaceChildren(paintFlower(b.phase, b.kind, ART_PX[b.kind]));
   }
   $('sFacets').innerHTML =
-    facet(LEGEND.phase[b.phase], 'its flower') +
-    facet(cap(QUALITY_NAMES[b.kind]), 'its size');
+    facet(LEGEND.phase[b.phase], PHASE_GLOSS[b.phase]) +
+    facet(cap(QUALITY_NAMES[b.kind]), TIER_GLOSS[b.kind]);
 
   // Intent and style in one section: the task and the number of asks as a
   // line, the style as tags under it. There is no Goal — nothing in the data
   // says what outcome was wanted, and guessing one would be fiction. That
   // absence is in the README rather than printed under every flower.
-  $('sTask').textContent = r.task + ' \u00b7 ' + LEGEND.bundling[b.bundle];
+  $('sTask').textContent = cap(LEGEND.bundling[b.bundle]);
   $('sTags').innerHTML = r.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('');
 
   $('sDims').innerHTML = r.dims.map(d =>

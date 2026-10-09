@@ -103,11 +103,11 @@ explained. A key that can be specific does not have to be general, and the artwo
 the width the strip was using. The swatch goes through the curtain's own sprite maker, so
 it cannot drift from what is on screen.
 
-It is two lines: the phase this flower is drawn for, and the reading its size reports, each
-with the mark that carries it beside it — *Setup, its flower* and *Mixed, its size*. What
-the species is called, and whether the head is a bud or wide open, are not printed: the
-drawing is in front of the reader and only its meaning is missing. That is also what keeps
-the key to two lines in a panel that has five other things to say.
+It is two lines: the phase this flower is drawn for and the reading its size reports, each
+glossed in three or four words — *Setup, config and tooling* and *Mixed, partly specified*.
+What the species is called, and whether the head is a bud or wide open, are not printed:
+the drawing is in front of the reader and only its meaning is missing. That is also what
+keeps the key to two lines in a panel that has five other things to say.
 
 ## How a flower is painted
 
@@ -239,7 +239,10 @@ fourth opinion while being a restatement of the other three.
 
 Intent and style are one section. Split, they were two labels and a rule around a single
 thought — what the prompt was for, and how it was put — and the reader had to carry the
-first across the gap to make sense of the second.
+first across the gap to make sense of the second. What it was for now sits in the key
+above, so what is left here is the shape of the ask and the style tags. *Focused* and
+*Multi-part* went with it: they were the ask count as adjectives, and the line above the
+tags already states it.
 
 Sections are separated by a hairline and nothing else. Boxing each one would turn a reading
 into a dashboard: six panels of chrome around six short pieces of text, in a piece that is
