@@ -48,8 +48,14 @@
   /* One step, used above and below every rule in the panel. It is the only
      thing setting the rhythm, so it carries the window's height instead of the
      sections carrying it one gap at a time: generous where there is room,
-     tighter where there is not, and the same between every pair either way. */
-  #side{--step:clamp(6px, 1.2vh, 14px); --dial:clamp(62px, 9vh, 94px);
+     tighter where there is not, and the same between every pair either way.
+     It is set well clear of the gaps inside a section — 7px from a label to
+     its words against about 35 between one section and the next — because
+     that ratio is the whole of what tells a reader where one ends. The slope
+     is steep and starts late so a short window stays compact: there is no
+     spare height to spend there, and spending it anyway is what makes a panel
+     scroll. */
+  #side{--step:clamp(8px, 4vh - 20px, 28px); --dial:clamp(62px, 9vh, 94px);
     flex:0 0 clamp(292px, 27vw, 384px); border-left:1px solid var(--rule);
     padding:calc(var(--pad) * 0.52) calc(var(--pad) * 0.82);
     overflow-y:auto; overscroll-behavior:contain;}
