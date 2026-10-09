@@ -11,7 +11,10 @@ full garland's width. `MIN_BEADS` in `index.html` is the threshold.
 The doorway is a painting, `public/door.png`. Everything hanging in it — every flower, leaf
 and thread — is drawn procedurally into a canvas each frame.
 
-The masthead title is a painting too, `public/logo.webp`.
+The masthead title is a painting too, `public/logo.webp`. It stands beside the copy rather
+than over it, and the band is deliberately short: a lede, one sentence saying what a flower
+and a garland are, and the archive's counts on one quiet line. Everything else about the
+piece is in the artwork or in the panel.
 
 **`index.html` is no longer self-contained.** It needs `public/door.png`,
 `public/logo.webp` and `public/indian-ghungroo-shaker-low.wav` beside it. Opened
@@ -92,9 +95,14 @@ re-checking if the labels ever change.
 **Decision fatigue**, **hour of day** and **word count** are not drawn at all. They are in
 the panel.
 
-The key under the piece shows a painted swatch for each of the eight things that are drawn,
-rendered with the same code as the curtain, so it cannot drift from what is on screen. The
-openness row is shown on the marigold — openness barely reads on a leaf.
+There is no key beside the piece. There used to be: a strip of eight swatches, four species
+and four degrees of openness, that a reader had to hold in their head and carry back to the
+curtain. It now lives in the panel as **This Flower**, and reads the one flower under the
+pointer — which species it is and what that says, how far open the head is and what that
+says — painted at the real diameter of its tier so the size on the page is the size being
+explained. A key that can be specific does not have to be general, and the artwork takes
+the width the strip was using. The swatch still goes through the curtain's own sprite maker,
+so it cannot drift from what is on screen.
 
 ## How a flower is painted
 
@@ -183,8 +191,8 @@ The piece hangs on the left; a reading of one flower sits on the right.
 - **There is no zoom and no pan.** The door holds still, the way a doorway does, and the
   whole of it stays in frame with a little air around it.
 - **Hover** a flower and the side panel reads it straight away — a score and a verdict,
-  then the three dimensions behind it, what the prompt did well and what it left out. A
-  small label follows the pointer too.
+  what the flower itself is saying, then the three dimensions behind it, what the prompt
+  did well and what it left out. A small label follows the pointer too.
 - **Click** to pin a flower, so the panel holds it when the pointer moves off. Previous/Next
   walk the whole run in order.
 - **Pause motion** freezes the sway; selection keeps working.
@@ -211,7 +219,10 @@ it renders at peaks of 0.10 to 0.40 with no clipping.
 
 Under 860px wide the panel stacks underneath and stays shut until you pick a flower, so
 it does not eat half the piece while empty. The piece itself keeps a floor of 190px and the
-key scrolls, so a short window can never squeeze the canvas to nothing.
+panel scrolls, so a short window can never squeeze the canvas to nothing. The one line of
+instruction under the piece is shown at every width now rather than desktop only — with the
+key gone from beside the doorway it is the only thing that says the garlands can be
+touched.
 
 The reading opens with a **Prompt Score** out of 10 — a weighted roll-up of the four
 labels the garland already draws from (specificity, clarity, grounding, bundling), so the
@@ -220,6 +231,14 @@ measurement, and the panel says as much underneath it. The three dimensions belo
 ones the data actually carries, each with its label printed beside the bar rather than a
 bare percentage. Actionability was cut: computed from the same four labels, it read as a
 fourth opinion while being a restatement of the other three.
+
+Intent and style are one section. Split, they were two labels and a rule around a single
+thought — what the prompt was for, and how it was put — and the reader had to carry the
+first across the gap to make sense of the second.
+
+Sections are separated by a hairline and nothing else. Boxing each one would turn a reading
+into a dashboard: six panels of chrome around six short pieces of text, in a piece that is
+otherwise editorial. One rule, one label, then the words.
 
 Two things the panel could show are absent rather than filled in. Nothing in the data
 records what the author *wanted* out of a prompt, and no model response was ever captured,

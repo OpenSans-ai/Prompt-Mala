@@ -29,9 +29,9 @@
        Devanagari and nothing else, DM Sans does all the working text. Each has
        a local fallback so a failed font load degrades rather than breaks — the
        piece is otherwise offline-capable and this is its one network
-       dependency. Tiro carries one word, माला in the standfirst: without it
-       the Devanagari falls back to a system face and sits visibly apart from
-       the Latin around it. */
+       dependency. Tiro carries one word, माला in the lede: without it the
+       Devanagari falls back to a system face and sits visibly apart from the
+       Latin around it. */
     --font-display:'Cormorant Garamond', Georgia, 'Times New Roman', serif;
     --font-deva:'Tiro Devanagari Hindi', 'Noto Sans Devanagari', serif;
     --font-ui:'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -43,9 +43,11 @@
   /* The piece on the left, the reading of a single bead on the right. */
   #app{height:100%; display:flex;}
   #main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column;
+    position:relative;
     padding:var(--pad) var(--pad) calc(var(--pad) * 0.6);}
   #side{flex:0 0 clamp(292px, 27vw, 384px); border-left:1px solid var(--rule);
-    padding:calc(var(--pad) * 0.52) var(--pad); overflow-y:auto; overscroll-behavior:contain;}
+    padding:calc(var(--pad) * 0.52) calc(var(--pad) * 0.82);
+    overflow-y:auto; overscroll-behavior:contain;}
 
   /* Stacked, the panel would eat half the piece just to sit there empty, so it
      stays shut until a bead is actually chosen and opens as a drawer. */
@@ -73,15 +75,20 @@
      makes it taller again. That loop settles at whatever cap it is given, and
      the masthead grows by 40px for nothing. A width stated outright has no
      feedback in it. The width is fitted to what the text actually measures as
-     it rewraps, which is nearly flat — about 108px tall from 1280 up — so a
+     it rewraps, which is nearly flat — so a
      width in plain vw units would fall away far faster than the text does.
+     It measures about 94px tall from 1280 up, now the standfirst is two lines.
      The lockup is then set a little under that height rather than level with
      it: matched exactly it is the heaviest thing in the masthead, and the
-     standfirst stops reading as the thing you are meant to read first. */
-  #mast{flex:0 0 auto; padding-bottom:11px; border-bottom:1px solid var(--rule-firm);
+     standfirst stops reading as the thing you are meant to read first.
+     The whole band was then taken down a notch — a shorter standfirst, the
+     statistics on one quiet line, and the lockup fitted to that — because the
+     masthead only has to establish the piece. The artwork and the reading of a
+     flower are what the page is for. */
+  #mast{flex:0 0 auto; padding-bottom:9px; border-bottom:1px solid var(--rule-firm);
     display:flex; align-items:center; gap:clamp(14px, 2.6vw, 30px);}
   #mast h1{margin:0; flex:0 0 auto; line-height:0;}
-  #mast h1 img{display:block; width:clamp(146px, calc(130px + 3vw), 170px); height:auto;}
+  #mast h1 img{display:block; width:clamp(132px, calc(118px + 2.6vw), 156px); height:auto;}
   #mast .blurb{flex:1 1 auto; min-width:0;
     display:flex; flex-direction:column; justify-content:center;}
   /* The lede is one line. It wants about 26.4x its own font size in width, so
@@ -95,9 +102,16 @@
   /* `pretty` keeps the last line from being a single word. It is not supported
      everywhere, so the last two words are tied with a non-breaking space as
      well — that part works in every browser. */
-  #mast .stand{margin:9px 0 0; max-width:62ch; font-size:12.5px; line-height:1.45;
+  #mast .stand{margin:7px 0 0; max-width:58ch; font-size:12.5px; line-height:1.45;
     color:var(--ink-2); text-wrap:pretty;}
-  #mast .dek{margin-top:9px; display:flex; gap:16px; flex-wrap:wrap;}
+  /* Archive statistics, not the message: one line, in the quietest ink, at
+     text weight. Set as tracked small caps and split across two slots they
+     read as a headline of their own and argued with the standfirst above
+     them. The middots are spans rather than text nodes so the counts can be
+     written in without the separators moving. */
+  #mast .dek{margin:7px 0 0; font-size:10.5px; line-height:1.35;
+    letter-spacing:0.012em; color:var(--ink-3);}
+  #mast .dek .sep{padding:0 5px; opacity:0.5;}
 
   /* Devanagari only, wherever it appears inside Latin text. */
   [lang="hi"]{font-family:var(--font-deva);}
@@ -150,72 +164,49 @@
   #tip .t{font-size:9.5px; font-weight:650; letter-spacing:0.155em; text-transform:uppercase;}
   #tip .d{margin-top:5px; font-size:11.5px; line-height:1.35; color:var(--ink-2);}
 
-  /* ---- the piece, and its key ---- */
-  /* The key stands to the left of the doorway rather than under it: a strip of
-     annotation beside the art, not a panel below it. The doorway takes the
-     rest, which is most of the window. */
-  #work{flex:1 1 auto; min-height:0; display:flex; align-items:stretch;
-    gap:clamp(14px, 2.2vw, 34px); margin-top:10px;}
-  /* The key sits at the foot of the column, not level with the middle of the
-     doorway: down here it reads as a caption to the piece rather than as a
-     second thing competing with it across the centre line. The padding is the
-     room the hint needs underneath. */
-  #keyside{flex:0 0 clamp(132px, 13vw, 168px); min-width:0; position:relative;
-    display:flex; flex-direction:column; justify-content:flex-end;
-    padding-bottom:48px;}
-  /* The hint sits out of the centring and against the foot of the column.
-     Inside it, it is part of what gets centred and pushes the key itself above
-     the middle of the doorway. */
-  #hint{position:absolute; left:0; right:0; bottom:2px;}
-
-  #legend{display:flex; flex-direction:column; gap:22px;}
-  .kgh{margin:0 0 9px; font-size:9.5px; font-weight:650; letter-spacing:0.155em;
-    text-transform:uppercase; color:var(--ink-3);}
-
-  .krow{display:grid; gap:9px 10px;}
-  .types{grid-template-columns:repeat(auto-fit, minmax(60px, 1fr));}
-  /* The quality ramp is one horizontal run, smallest to largest, labels under. */
-  .sizes{display:flex; align-items:flex-end; justify-content:space-between; gap:5px;}
-
-  .lg{display:flex; align-items:center; gap:6px; min-width:0;}
-  .sizes .lg{flex-direction:column; align-items:center; gap:4px;}
-  .sw{flex:0 0 auto; display:flex; align-items:flex-end; justify-content:center;}
-  .types .sw{height:20px;}
-  .sizes .sw{height:24px;}
-  .sw canvas{display:block;}
-  .lgt b{font-weight:500; font-size:10.5px; color:var(--ink-2); white-space:nowrap;}
-
-  #hint{margin:0; color:var(--ink-3); font-size:10px; line-height:1.4;
-    letter-spacing:0.01em; transition:opacity .6s; pointer-events:none;}
-
-  #stage{flex:1 1 auto; min-width:0; min-height:190px; position:relative;}
+  /* ---- the piece ---- */
+  /* Nothing stands beside the doorway any more. The key used to: a strip of
+     swatches for all eight things that can be drawn, which a reader had to
+     hold in their head and carry back to the curtain. It is now in the panel,
+     where it reads the one flower under the pointer — see `This Flower`
+     there. A key that can be specific does not have to be general, and the
+     artwork takes the width the strip was using. */
+  #stage{flex:1 1 auto; min-width:0; min-height:190px; position:relative;
+    margin-top:10px;}
   canvas#cv{position:absolute; inset:0; display:block; width:100%; height:100%; touch-action:none;}
 
-  /* Stacked, the key goes under the artwork as a single short strip. Side by
-     side here would squeeze the doorway into a column too narrow to explore. */
+  /* Bottom left of the column, opposite the controls, on the paper the
+     doorway leaves bare beside itself. It is out of the flow so it costs the
+     artwork no height, and it fades on a timer: an invitation, not a caption.
+     It is the only thing that says the garlands can be touched, so it is no
+     longer hidden on a narrow window — the key that used to stand in for it
+     there is gone. Stacked there is no bare paper to put it on, so it drops
+     below the piece as a caption after all. */
+  #hint{position:absolute; left:var(--pad); bottom:calc(var(--pad) * 0.6);
+    z-index:12; max-width:22ch; margin:0;
+    color:var(--ink-3); font-size:10px; line-height:1.4;
+    letter-spacing:0.01em; transition:opacity .6s; pointer-events:none;}
+
   @media (max-width:860px){
-    #work{flex-direction:column; gap:14px; margin-top:8px;}
-    #stage{order:1; min-height:220px;}
-    #keyside{order:2; flex:0 0 auto; justify-content:flex-start; position:static;
-      padding-bottom:0;}
-    #legend{flex-direction:row; align-items:flex-start; gap:clamp(22px, 7vw, 54px);}
-    /* Content-width groups here, so auto-fit sees no room and drops the types
-       to one tall column. Two is the right shape for a strip. */
-    .types{grid-template-columns:repeat(2, auto);}
-    #hint{display:none;}
+    #stage{min-height:220px; margin-top:8px;}
+    #hint{position:static; max-width:none; margin-top:8px; text-align:center;}
   }
 
   /* ---- the reading panel ---- */
   #side .empty{color:var(--ink-3); font-size:13px; line-height:1.55; font-family:var(--font-ui);}
 
-  /* Tuned so the whole reading fits a standard window without scrolling. */
-  .fs{padding:8px 0; border-top:1px solid var(--rule);}
+  /* Sections are separated by a hairline and nothing else. Boxing each one
+     would turn a reading into a dashboard — six panels of chrome around six
+     short pieces of text — and the piece is editorial, not telemetry. One
+     rule, one label, then the words.
+     Tuned so the whole reading fits a standard window without scrolling. */
+  .fs{padding:5px 0; border-top:1px solid var(--rule);}
   .fs:first-child{padding-top:2px; border-top:0;}
-  .fs > .lbl{display:block; margin-bottom:9px;}
+  .fs > .lbl{display:block; margin-bottom:5px;}
 
   /* Prompt Score carries the hierarchy: the only serif in the panel, the only
      thing at display size, and the only element with a graphic beside it. */
-  .score{padding-bottom:16px;}
+  .score{padding-bottom:7px;}
   .scoreRow{display:flex; gap:15px; align-items:center;}
   .dial{position:relative; width:62px; height:62px; flex:0 0 62px;}
   .dial svg{width:62px; height:62px; transform:rotate(-90deg);}
@@ -232,12 +223,33 @@
     font-size:clamp(22px,2.2vw,27px); line-height:1.1; letter-spacing:-0.014em;}
   .scoreText p{margin:7px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2);}
 
+  /* ---- what the flower under the pointer is ----
+     This is the key, and it is specific: the species and how far open the
+     head is, each with what it stands for beside it. The art is painted with
+     the curtain's own renderer at the real size of its tier, so neither the
+     drawing nor the words can drift from the garlands, and the size itself is
+     legible as the thing it encodes. */
+  .flRow{display:flex; gap:13px; align-items:flex-start;}
+  .flArt{flex:0 0 54px; height:54px; display:flex; align-items:center;
+    justify-content:center;}
+  .flArt canvas{display:block;}
+  .flTxt{flex:1 1 auto; min-width:0;}
+  .fct{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    margin:0; font-size:12.5px; font-weight:500;}
+  .fct i{font-style:normal; font-weight:400; color:var(--ink-2); text-align:right;}
+  .fct + .note{margin-top:2px;}
+  .note + .fct{margin-top:7px;}
+
+  /* Intent and style were two sections saying one thing — what the prompt was
+     for, and how it was put — with a label and a rule between them. One
+     label: the task as a line, the style as the tags under it. */
+  #sTask{margin:0 0 6px; font-size:12.5px; line-height:1.45; color:var(--ink);}
   .tags{display:flex; flex-wrap:wrap; gap:5px;}
   .tag{font-size:11px; font-weight:500; line-height:1; padding:4px 8px;
     border:1px solid var(--rule); border-radius:999px; color:var(--ink-2);
     background:rgba(200,118,28,0.05);}
 
-  .dim{margin-bottom:10px;}
+  .dim{margin-bottom:8px;}
   .dim:last-child{margin-bottom:0;}
   .dimHd{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
     font-size:12.5px; font-weight:500; margin-bottom:5px;}
@@ -264,17 +276,13 @@
   #sBody{display:flex; flex-direction:column; min-height:100%;
     justify-content:space-between;}
   #sNav{display:flex; justify-content:space-between; align-items:center; gap:10px;
-    padding-top:13px; border-top:1px solid var(--rule); font-size:12px;}
+    padding-top:11px; border-top:1px solid var(--rule); font-size:12px;}
   #sNav button{border:0; background:none; font-family:var(--font-ui); font-size:12px;
     color:var(--ink-2); cursor:pointer; padding:4px 0;}
   #sNav button:hover{color:var(--ink);}
   #sNav button:disabled{color:var(--ink-3); cursor:default;}
   #sNav .pos{color:var(--ink-3);}
 
-  .row{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
-    font-size:12.5px; padding:5px 0; border-bottom:1px solid var(--rule);}
-  .row:last-of-type{border-bottom:0;}
-  .row .v{color:var(--ink); font-weight:500; text-align:right;}
   .note{margin:5px 0 0; font-size:11.5px; line-height:1.45; color:var(--ink-3);}
 
 </style>
@@ -289,45 +297,38 @@
       <div class="blurb">
         <p class="lede">One question leads to another, and suddenly there’s a whole
           mala of them.</p>
-        <p class="stand">Prompt <span lang="hi">माला</span> is my personal
-          collection of AI conversations, reimagined with flowers, garlands, and a little
-          Indian nostalgia. Because apparently, even my curiosity needs a
-          desi&nbsp;makeover.</p>
-        <div class="dek">
-          <span class="lbl" id="mCount">&nbsp;</span>
-          <span class="lbl">10 Jun &ndash; 5 Oct 2026</span>
-        </div>
+        <p class="stand">Every flower is one prompt from my own AI conversations; every
+          garland &mdash; <span lang="hi">माला</span> &mdash; one session, in the order it
+          was&nbsp;typed.</p>
+        <p class="dek"><span id="mCount">&nbsp;</span><span class="sep"
+          aria-hidden="true">·</span>10 Jun &ndash; 5 Oct 2026</p>
       </div>
     </header>
 
-    <div id="work">
-      <aside id="keyside">
-        <div id="legend"></div>
-        <p id="hint">brush the garlands &middot; hover or click a flower</p>
-      </aside>
-
-      <div id="stage">
-        <canvas id="cv"></canvas>
-        <div id="tip"><div class="t" id="tipT"></div><div class="d" id="tipD"></div></div>
-        <div id="tools">
-          <button id="tPause" type="button" aria-pressed="false"
-                  aria-label="Pause motion" title="Pause motion">
-            <svg class="i-sway" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.6q1.7 2.6 0 5.2t0 5.6"></path><path d="M8 2.6q-1.7 2.6 0 5.2t0 5.6"></path><path d="M12 2.6q1.7 2.6 0 5.2t0 5.6"></path></svg>
-            <svg class="i-still" viewBox="0 0 16 16" aria-hidden="true" hidden><path d="M4 2.6q1.7 2.6 0 5.2t0 5.6"></path><path d="M8 2.6q-1.7 2.6 0 5.2t0 5.6"></path><path d="M12 2.6q1.7 2.6 0 5.2t0 5.6"></path><path d="M2.4 13.6 13.6 2.4"></path></svg>
-          </button>
-          <button id="tMute" type="button" aria-pressed="false"
-                  aria-label="Mute sound" title="Mute sound">
-            <svg class="i-sound" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6.2h2.2l3-2.5v8.6l-3-2.5H3z"></path><path d="M11 6a3 3 0 0 1 0 4"></path><path d="M12.9 4.4a5.5 5.5 0 0 1 0 7.2"></path></svg>
-            <svg class="i-nosound" viewBox="0 0 16 16" aria-hidden="true" hidden><path d="M3 6.2h2.2l3-2.5v8.6l-3-2.5H3z"></path><path d="M2.7 13.3 13.3 2.7"></path></svg>
-          </button>
-        </div>
+    <div id="stage">
+      <canvas id="cv"></canvas>
+      <div id="tip"><div class="t" id="tipT"></div><div class="d" id="tipD"></div></div>
+      <div id="tools">
+        <button id="tPause" type="button" aria-pressed="false"
+                aria-label="Pause motion" title="Pause motion">
+          <svg class="i-sway" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.6q1.7 2.6 0 5.2t0 5.6"></path><path d="M8 2.6q-1.7 2.6 0 5.2t0 5.6"></path><path d="M12 2.6q1.7 2.6 0 5.2t0 5.6"></path></svg>
+          <svg class="i-still" viewBox="0 0 16 16" aria-hidden="true" hidden><path d="M4 2.6q1.7 2.6 0 5.2t0 5.6"></path><path d="M8 2.6q-1.7 2.6 0 5.2t0 5.6"></path><path d="M12 2.6q1.7 2.6 0 5.2t0 5.6"></path><path d="M2.4 13.6 13.6 2.4"></path></svg>
+        </button>
+        <button id="tMute" type="button" aria-pressed="false"
+                aria-label="Mute sound" title="Mute sound">
+          <svg class="i-sound" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6.2h2.2l3-2.5v8.6l-3-2.5H3z"></path><path d="M11 6a3 3 0 0 1 0 4"></path><path d="M12.9 4.4a5.5 5.5 0 0 1 0 7.2"></path></svg>
+          <svg class="i-nosound" viewBox="0 0 16 16" aria-hidden="true" hidden><path d="M3 6.2h2.2l3-2.5v8.6l-3-2.5H3z"></path><path d="M2.7 13.3 13.3 2.7"></path></svg>
+        </button>
       </div>
     </div>
+    <p id="hint">brush the garlands &middot; pick a flower to read it</p>
   </div>
 
   <aside id="side">
     <div id="sEmpty" class="empty">
-      Hover a flower to read it. Click one to keep it here while you look elsewhere.
+      Which flower it is says what the prompt was for; how far open the head is,
+      how good it was. Hover one to read it &mdash; click to keep it here while you
+      look elsewhere.
     </div>
     <div id="sBody" hidden>
 
@@ -344,14 +345,19 @@
         </div>
       </section>
 
-      <section class="fs">
-        <span class="lbl">Prompt Style</span>
-        <div id="sTags" class="tags"></div>
+      <section class="fs flower">
+        <span class="lbl">This Flower</span>
+        <div class="flRow">
+          <span class="flArt" id="sArt"></span>
+          <div class="flTxt" id="sFacets"></div>
+        </div>
       </section>
 
       <section class="fs">
-        <span class="lbl">Prompt Intent</span>
-        <div id="sIntent"></div>
+        <span class="lbl">Intent &amp; Style</span>
+        <p id="sTask"></p>
+        <div id="sTags" class="tags"></div>
+        <p class="note">The goal behind a prompt is not recorded.</p>
       </section>
 
       <section class="fs">
@@ -395,9 +401,12 @@ const STRAND_GAP = 27, MARGIN = 30, PAD_W = 9;
 // rolled up from the four labels that say something about its quality. Every
 // one of those labels is still available in full on the right — this is about
 // what the eye has to carry, not about throwing data away.
-const KIND_BUD = 0, KIND_SMALL = 1, KIND_FULL = 2, KIND_DOUBLE = 3;
-const KIND_NAMES = ['smallest','small','large','largest'];
 const QUALITY_NAMES = ['rough','mixed','solid','sharp'];
+// How far open the head is, in words, and where that tier sits in the ramp.
+// The panel is the only key the piece has, so these are the names a reader is
+// given for what the drawing is doing.
+const OPEN_NAMES = ['Tight bud','Half open','Full bloom','Wide open'];
+const SIZE_NOTE  = ['smallest of four','second of four','third of four','largest of four'];
 // A better prompt is a bigger flower, and that is the only thing size says.
 // The form of each species no longer changes with it — a marigold is always a
 // marigold, just larger or smaller.
@@ -1487,29 +1496,32 @@ const SPEC_NOTE = [
   'Part precise, part left open — some detail given, some assumed.',
   'Gestures at the problem and leaves the detail to be inferred.'
 ];
-const PHASE_NOTE = [
-  'Shaping what the thing looks like.',
-  'Scaffolding — config, tooling, getting the ground ready.',
-  'Chasing something that was broken.',
-  'Working on how it behaves and feels to use.'
-];
-
 function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]); }
 
-// Each bar fills to where the label sits on its own scale. Direction is "more
-// of the thing named", so Specificity full = very specific, Bundling full =
-// many asks. The printed value is always the label, never a invented number.
-function barRow(name, value, frac){
-  return '<div class="bar"><div class="hd"><span>' + esc(name) + '</span>' +
-    '<span class="v">' + esc(value) + '</span></div>' +
-    '<div class="tr"><div class="fl" style="width:' + Math.round(frac*100) + '%"></div></div></div>';
+// One line of the key: what the mark is, what it stands for, and a note under
+// it. Used twice — once for the species, once for how open the head is.
+function facet(name, value, note){
+  return '<p class="fct">' + esc(name) + '<i>' + esc(value) + '</i></p>' +
+    '<p class="note">' + esc(note) + '</p>';
 }
 
-// Context fields carry no magnitude, so they get a rule and a value, no bar.
-function plainRow(name, value, note){
-  return '<div class="row"><span>' + esc(name) + '</span>' +
-    '<span class="v">' + esc(value) + '</span></div>' +
-    (note ? '<p class="note">' + esc(note) + '</p>' : '');
+// The key, painted. Drawn through the curtain's own sprite maker rather than
+// by any second renderer, so the swatch cannot drift from the garlands, and at
+// the real diameter of its tier scaled into a 46px box — the size is one of
+// the two things being explained, so it has to be true. The box is a shade
+// wider than the largest head is on screen: at the curtain's own scale the
+// smallest tier is a speck, and what has to survive here is the ratio between
+// the four, not their absolute size.
+const ART_PX = KIND_D.map(d => Math.round(d / D_WIDEST * 54));
+
+function paintFlower(phase, kind, px){
+  const sp = makeSprite(KIND_D[kind], kind, beadStyle({ phase: phase }), 1, 3.2);
+  const c = document.createElement('canvas');
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  c.width = Math.round(px * dpr); c.height = Math.round(px * dpr);
+  c.style.width = px + 'px'; c.style.height = px + 'px';
+  c.getContext('2d').drawImage(sp.c, 0, 0, c.width, c.height);
+  return c;
 }
 
 /* ---------- reading a flower ----------
@@ -1656,14 +1668,26 @@ function showPanel(b){
   dial.style.strokeDasharray = C.toFixed(1);
   dial.style.strokeDashoffset = (C * (1 - r.score/10)).toFixed(1);
 
-  $('sTags').innerHTML = r.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('');
+  // What this flower is, which is the whole of the key. The species carries
+  // the phase and nothing else; how far open the head is carries the rolled-up
+  // reading. Repainting only when the pair actually changes keeps a drag across
+  // hundreds of flowers off the sprite path.
+  const art = $('sArt'), k = b.phase + ':' + b.kind;
+  if (art.dataset.k !== k){
+    art.dataset.k = k;
+    art.replaceChildren(paintFlower(b.phase, b.kind, ART_PX[b.kind]));
+  }
+  $('sFacets').innerHTML =
+    facet(cap(BLOOM[b.phase].name), LEGEND.phase[b.phase],
+          'One species per phase. The colour says nothing else.') +
+    facet(OPEN_NAMES[b.kind], QUALITY_NAMES[b.kind],
+          'Openness carries the whole reading \u2014 ' + SIZE_NOTE[b.kind] + '.');
 
-  // Task is the phase, generalised. There is no Goal: nothing in the data says
-  // what outcome was wanted, and guessing one would be fiction.
-  $('sIntent').innerHTML =
-    plainRow('Task', r.task) +
-    plainRow('Asks', LEGEND.bundling[b.bundle]) +
-    '<p class="note">The goal behind a prompt is not recorded.</p>';
+  // Intent and style in one section: the task and the number of asks as a
+  // line, the style as tags under it. There is no Goal — nothing in the data
+  // says what outcome was wanted, and guessing one would be fiction.
+  $('sTask').textContent = r.task + ' \u00b7 ' + LEGEND.bundling[b.bundle];
+  $('sTags').innerHTML = r.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('');
 
   $('sDims').innerHTML = r.dims.map(d =>
     '<div class="dim"><div class="dimHd"><span>' + esc(d.name) + '</span>' +
@@ -1746,62 +1770,14 @@ cv.addEventListener('pointerleave', () => {
   if (sel && shownId !== sel.id) showPanel(sel);
 });
 
-/* ---------- key ---------- */
-const legendEl = document.getElementById('legend');
-
+/* ---------- the masthead count ---------- */
+// The one number in the masthead that is read off the data rather than typed
+// into the markup, so it cannot fall out of step with what is hanging.
 const nf = new Intl.NumberFormat('en-GB');
 
-function buildLegend(){
+function writeDek(){
   document.getElementById('mCount').textContent =
-    nf.format(beads.length) + ' prompts · ' + nStrands + ' sessions';
-
-  // One painted swatch per entry, drawn with the same renderer as the curtain
-  // so the key cannot drift from what is actually on screen.
-  function swatch(bead, px){
-    const st = beadStyle(bead);
-    const sp = makeSprite(bead.D, bead.kind, st, 1, 3.2);
-    const c = document.createElement('canvas');
-    const dpr = Math.min(3, window.devicePixelRatio || 1);
-    c.width = Math.round(px * dpr); c.height = Math.round(px * dpr);
-    c.style.width = px + 'px'; c.style.height = px + 'px';
-    c.getContext('2d').drawImage(sp.c, 0, 0, c.width, c.height);
-    const cell = document.createElement('span');
-    cell.className = 'sw';
-    cell.appendChild(c);
-    return cell;
-  }
-  function item(bead, name, px){
-    const d = document.createElement('div'); d.className = 'lg';
-    d.appendChild(swatch(bead, px));
-    const t = document.createElement('span'); t.className = 'lgt';
-    const b = document.createElement('b'); b.textContent = name;
-    t.appendChild(b); d.appendChild(t);
-    return d;
-  }
-  function group(title, rowClass, nodes){
-    const g = document.createElement('section'); g.className = 'kgrp';
-    const h = document.createElement('h3'); h.className = 'kgh'; h.textContent = title;
-    const row = document.createElement('div'); row.className = 'krow ' + rowClass;
-    nodes.forEach(n => row.appendChild(n));
-    g.appendChild(h); g.appendChild(row);
-    return g;
-  }
-
-  legendEl.innerHTML = '';
-
-  // Colour carries the phase, and each phase is its own species.
-  const plain = { phase:0, D:KIND_D[KIND_FULL], kind:KIND_FULL };
-  legendEl.appendChild(group('Flower type', 'types',
-    LEGEND.phase.map((lab, i) =>
-      item(Object.assign({}, plain, { phase:i }), lab, 20))));
-
-  // Size is the rolled-up reading, so the ramp is drawn at the real ratios the
-  // curtain uses — KIND_D scaled into the cell — rather than at sizes picked to
-  // look like a ramp. Shown on the marigold: size reads poorly on a leaf.
-  const ramp = KIND_D.map(d => Math.round(d / KIND_D[KIND_D.length-1] * 24));
-  legendEl.appendChild(group('Prompt quality', 'sizes',
-    QUALITY_NAMES.map((lab, k) =>
-      item({ phase:1, kind:k, D:KIND_D[k] }, cap(lab), ramp[k]))));
+    nf.format(beads.length) + ' prompts \u00b7 ' + nStrands + ' sessions';
 }
 
 function cap(w){ return w.charAt(0).toUpperCase() + w.slice(1); }
@@ -1856,7 +1832,7 @@ window.addEventListener('resize', resize);
 const hint = document.getElementById('hint');
 setTimeout(() => { hint.style.opacity = '0'; }, 6500);
 
-buildLegend();
+writeDek();
 resize();
 openView();
 
