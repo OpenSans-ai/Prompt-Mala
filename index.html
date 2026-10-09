@@ -357,7 +357,6 @@
         <span class="lbl">Intent &amp; Style</span>
         <p id="sTask"></p>
         <div id="sTags" class="tags"></div>
-        <p class="note">The goal behind a prompt is not recorded.</p>
       </section>
 
       <section class="fs">
@@ -1687,7 +1686,8 @@ function showPanel(b){
 
   // Intent and style in one section: the task and the number of asks as a
   // line, the style as tags under it. There is no Goal — nothing in the data
-  // says what outcome was wanted, and guessing one would be fiction.
+  // says what outcome was wanted, and guessing one would be fiction. That
+  // absence is in the README rather than printed under every flower.
   $('sTask').textContent = r.task + ' \u00b7 ' + LEGEND.bundling[b.bundle];
   $('sTags').innerHTML = r.tags.map(t => '<span class="tag">' + esc(t) + '</span>').join('');
 

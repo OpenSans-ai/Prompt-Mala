@@ -242,7 +242,9 @@ otherwise editorial. One rule, one label, then the words.
 
 Two things the panel could show are absent rather than filled in. Nothing in the data
 records what the author *wanted* out of a prompt, and no model response was ever captured,
-so the piece cannot say whether the ask landed. Both would have been easy to invent.
+so the piece cannot say whether the ask landed. Both would have been easy to invent. The
+panel used to say so, under Intent — one sentence about the dataset, printed identically
+under all 2,297 flowers. It is said here instead.
 
 ## Privacy
 
