@@ -180,11 +180,21 @@ The piece hangs on the left; a reading of one flower sits on the right.
 - **Pause motion** freezes the sway; selection keeps working.
 
 Small brass **ghungrus** are strung between the flowers. They are decoration and carry no
-data, so they live in their own list rather than in `beads` — which is the whole reason
-hit testing never picks one up, with no special case needed. Brushing the garlands rings
-them: three bells struck slightly out of step, each built from inharmonic partials, since
-a bell's overtones are not whole multiples of a fundamental and that is exactly why it
-rings like metal instead of sounding like a note.
+data, so they live in their own list rather than in `beads` — which is the whole reason hit
+testing never picks one up, with no special case needed.
+
+Brushing the garlands rings them. A ghungru is not a bell you strike, it is a loose pellet
+rattling inside a small shell, so the sound is **dry** (about 40ms, not a 200ms tail),
+**noisy** (resonant filtered noise, not oscillator partials) and **many** (a handful of
+shells at slightly different pitches, never one clean tone). Built with oscillators and a
+long decay it comes out as a chime, which is a different instrument.
+
+`ringGhungru` takes its audio context as an argument rather than reaching for the global
+one, so it can be rendered into an `OfflineAudioContext` and measured. It should come out
+around 40ms long with a spectral centroid near 4.5kHz; a struck bell would be 200ms+ and
+much lower. The makeup gain in it is not a guess — a high-Q bandpass throws away most of
+the noise energy, and without it the whole thing renders at a peak of about 0.02 and is
+inaudible.
 
 Under 860px wide the panel stacks underneath and stays shut until you pick a flower, so
 it does not eat half the piece while empty. The piece itself keeps a floor of 190px and the
