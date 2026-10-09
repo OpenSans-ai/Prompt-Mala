@@ -45,7 +45,12 @@
   #main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column;
     position:relative;
     padding:var(--pad) var(--pad) calc(var(--pad) * 0.6);}
-  #side{flex:0 0 clamp(292px, 27vw, 384px); border-left:1px solid var(--rule);
+  /* One step, used above and below every rule in the panel. It is the only
+     thing setting the rhythm, so it carries the window's height instead of the
+     sections carrying it one gap at a time: generous where there is room,
+     tighter where there is not, and the same between every pair either way. */
+  #side{--step:clamp(6px, 1.2vh, 14px);
+    flex:0 0 clamp(292px, 27vw, 384px); border-left:1px solid var(--rule);
     padding:calc(var(--pad) * 0.52) calc(var(--pad) * 0.82);
     overflow-y:auto; overscroll-behavior:contain;}
 
@@ -200,13 +205,12 @@
      short pieces of text — and the piece is editorial, not telemetry. One
      rule, one label, then the words.
      Tuned so the whole reading fits a standard window without scrolling. */
-  .fs{padding:5px 0; border-top:1px solid var(--rule);}
+  .fs{padding:var(--step) 0; border-top:1px solid var(--rule);}
   .fs:first-child{padding-top:2px; border-top:0;}
-  .fs > .lbl{display:block; margin-bottom:5px;}
+  .fs > .lbl{display:block; margin-bottom:7px;}
 
   /* Prompt Score carries the hierarchy: the only serif in the panel, the only
      thing at display size, and the only element with a graphic beside it. */
-  .score{padding-bottom:7px;}
   .scoreRow{display:flex; gap:15px; align-items:center;}
   .dial{position:relative; width:62px; height:62px; flex:0 0 62px;}
   .dial svg{width:62px; height:62px; transform:rotate(-90deg);}
@@ -269,15 +273,18 @@
     font-size:16.5px; line-height:1.2; letter-spacing:-0.008em;}
   .rang p{margin:5px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2);}
 
-  /* The column is taller than the reading on most windows. The slack is spread
-     between the sections rather than pooled above the nav, where on a tall
-     window it opened a 300px hole: the panel breathes more the more room it
-     has, and closes up to compact on a short one, with the nav on the floor
-     either way. */
-  #sBody{display:flex; flex-direction:column; min-height:100%;
-    justify-content:space-between;}
+  /* The column is taller than the reading on most windows. That slack used to
+     be spread between the sections, which made the rhythm of the panel a
+     property of the window: the same reading sat tight on a short one and
+     drifted apart on a tall one. Worse, the slack landed between one section's
+     last line and the next one's rule, all of it on one side, so every rule
+     sat hard against the label below it and a hand's breadth from the words
+     above. The spacing is fixed now and symmetric — the same above a rule as
+     below it, whatever the window — and the reading simply ends, with the
+     slack after it. */
+  #sBody{display:flex; flex-direction:column;}
   #sNav{display:flex; justify-content:space-between; align-items:center; gap:10px;
-    padding-top:11px; border-top:1px solid var(--rule); font-size:12px;}
+    padding-top:var(--step); border-top:1px solid var(--rule); font-size:12px;}
   #sNav button{border:0; background:none; font-family:var(--font-ui); font-size:12px;
     color:var(--ink-2); cursor:pointer; padding:4px 0;}
   #sNav button:hover{color:var(--ink);}
