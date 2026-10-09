@@ -7,10 +7,10 @@
 <link rel="icon" type="image/png" sizes="32x32" href="public/icon-32.png">
 <link rel="icon" type="image/png" sizes="512x512" href="public/icon-512.png">
 <link rel="apple-touch-icon" href="public/icon-180.png">
-<meta name="description" content="2,297 prompts across 57 sessions, hung as painted garlands in a carved doorway. Every flower is one prompt.">
+<meta name="description" content="A visual archive of my AI conversations. Every prompt becomes a flower, and every session becomes a माला — 2,297 prompts across 57 sessions, hung in a carved doorway.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Prompt माला">
-<meta property="og:description" content="2,297 prompts across 57 sessions, hung as painted garlands in a carved doorway. Every flower is one prompt.">
+<meta property="og:description" content="A visual archive of my AI conversations. Every prompt becomes a flower, and every session becomes a माला — 2,297 prompts across 57 sessions, hung in a carved doorway.">
 <!-- Relative, so it resolves against wherever the piece is served from. Strict
      scrapers want this absolute; put the deployed URL here if the card matters. -->
 <meta property="og:image" content="public/og.png">
@@ -102,18 +102,18 @@
   #mast h1 img{display:block; width:clamp(132px, calc(118px + 2.6vw), 156px); height:auto;}
   #mast .blurb{flex:1 1 auto; min-width:0;
     display:flex; flex-direction:column; justify-content:center;}
-  /* The lede is one line. It wants about 26.4x its own font size in width, so
+  /* The lede is one line. It wants about 17.5x its own font size in width, so
      the size is fitted to the column rather than fixed, and `nowrap` holds the
      line even while the webfont is still loading and the fallback is measuring
      wider. Below the breakpoint it is allowed to wrap: holding one line there
      would mean type too small to read. */
   #mast .lede{margin:0; font-family:var(--font-display); font-style:italic;
-    font-weight:700; font-size:clamp(13px, calc(2.79vw - 11.7px), 28px);
+    font-weight:700; font-size:clamp(15px, calc(4.1vw - 16px), 31px);
     line-height:1.22; letter-spacing:-0.012em; white-space:nowrap; color:var(--ink);}
   /* `pretty` keeps the last line from being a single word. It is not supported
      everywhere, so the last two words are tied with a non-breaking space as
      well — that part works in every browser. */
-  #mast .stand{margin:7px 0 0; max-width:58ch; font-size:12.5px; line-height:1.45;
+  #mast .stand{margin:7px 0 0; max-width:72ch; font-size:12.5px; line-height:1.45;
     color:var(--ink-2); text-wrap:pretty;}
   /* Archive statistics, not the message: one line, in the quietest ink, at
      text weight. Set as tracked small caps and split across two slots they
@@ -136,10 +136,6 @@
   }
 
   .lbl{font-size:9.5px; font-weight:650; letter-spacing:0.155em; text-transform:uppercase; color:var(--ink-3);}
-
-  /* ---- the piece ---- */
-  /* The key grew enough to squeeze the canvas to nothing on a short window.
-     The piece keeps its floor and the key scrolls instead. */
 
   /* floating control bar, centred under the piece */
   /* Stacked in the paper to the right of the doorway, at its foot — inside the
@@ -198,7 +194,13 @@
     color:var(--ink-3); font-size:10px; line-height:1.4;
     letter-spacing:0.01em; transition:opacity .6s; pointer-events:none;}
 
+  /* The reading panel is gone below here, so the masthead has the whole window
+     to set the lede in rather than the window less a column. Fitted to vw
+     alone it goes on shrinking past the breakpoint as if the panel were still
+     there, and the title ends up smaller on a 700px window than the standfirst
+     under it deserves. */
   @media (max-width:860px){
+    #mast .lede{font-size:clamp(17px, calc(3.6vw - 1px), 31px);}
     #stage{min-height:220px; margin-top:8px;}
     #hint{position:static; max-width:none; margin-top:8px; text-align:center;}
   }
@@ -317,11 +319,10 @@
       <h1><img src="public/logo.webp" width="640" height="389" alt="Prompt माला"
                decoding="async" fetchpriority="high"></h1>
       <div class="blurb">
-        <p class="lede">One question leads to another, and suddenly there’s a whole
-          mala of them.</p>
-        <p class="stand">Every flower is one prompt from my own AI conversations; every
-          garland &mdash; <span lang="hi">माला</span> &mdash; one session, in the order it
-          was&nbsp;typed.</p>
+        <p class="lede">A Visual Archive of My AI&nbsp;Conversations</p>
+        <p class="stand">Every prompt becomes a flower, and every session becomes
+          a&nbsp;<span lang="hi">माला</span>. A little record of everything I’ve asked,
+          explored, and somehow ended up asking&nbsp;next.</p>
         <p class="dek"><span id="mCount">&nbsp;</span><span class="sep"
           aria-hidden="true">·</span>10 Jun &ndash; 5 Oct 2026</p>
       </div>

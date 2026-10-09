@@ -12,9 +12,15 @@ The doorway is a painting, `public/door.png`. Everything hanging in it — every
 and thread — is drawn procedurally into a canvas each frame.
 
 The masthead title is a painting too, `public/logo.webp`. It stands beside the copy rather
-than over it, and the band is deliberately short: a lede, one sentence saying what a flower
-and a garland are, and the archive's counts on one quiet line. Everything else about the
-piece is in the artwork or in the panel.
+than over it, and the band is deliberately short: a title, one sentence saying what a
+flower and a garland are, and the archive's counts on one quiet line. Everything else about
+the piece is in the artwork or in the panel.
+
+The title is held to one line by `nowrap`, at a size fitted to the column rather than
+fixed — it wants about 17.5x its own font size in width, and the column is the window less
+the panel, so the fit is stated in `vw`. Below 860px the panel is gone and the masthead has
+the whole window; without a rule of its own there the title goes on shrinking past the
+breakpoint as though the panel were still taking its 292px.
 
 **`index.html` is no longer self-contained.** It needs `public/door.png`,
 `public/logo.webp` and `public/indian-ghungroo-shaker-low.wav` beside it. Opened
