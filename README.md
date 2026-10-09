@@ -237,6 +237,14 @@ ones the data actually carries, each with its label printed beside the bar rathe
 bare percentage. Actionability was cut: computed from the same four labels, it read as a
 fourth opinion while being a restatement of the other three.
 
+The score opens the panel and is sized to say so. The dial runs 62 to 94px off `vh`, on
+the same footing as the step between sections, so a window with height to spare spends it
+on the thing the reading opens with rather than on air. Under the verdict is one light
+line, three per band picked by the flower's own index so neighbours differ. It is an aside
+on the score and nothing else — in particular it never says what came back, since no
+response was ever captured. Prompt Character, further down, is the serif italic and
+answers a different question: when the prompt was typed and where it fell in the session.
+
 Intent and style are one section. Split, they were two labels and a rule around a single
 thought — what the prompt was for, and how it was put — and the reader had to carry the
 first across the gap to make sense of the second. What it was for now sits in the key

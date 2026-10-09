@@ -49,7 +49,7 @@
      thing setting the rhythm, so it carries the window's height instead of the
      sections carrying it one gap at a time: generous where there is room,
      tighter where there is not, and the same between every pair either way. */
-  #side{--step:clamp(6px, 1.2vh, 14px);
+  #side{--step:clamp(6px, 1.2vh, 14px); --dial:clamp(62px, 9vh, 94px);
     flex:0 0 clamp(292px, 27vw, 384px); border-left:1px solid var(--rule);
     padding:calc(var(--pad) * 0.52) calc(var(--pad) * 0.82);
     overflow-y:auto; overscroll-behavior:contain;}
@@ -210,22 +210,30 @@
   .fs > .lbl{display:block; margin-bottom:7px;}
 
   /* Prompt Score carries the hierarchy: the only serif in the panel, the only
-     thing at display size, and the only element with a graphic beside it. */
-  .scoreRow{display:flex; gap:15px; align-items:center;}
-  .dial{position:relative; width:62px; height:62px; flex:0 0 62px;}
-  .dial svg{width:62px; height:62px; transform:rotate(-90deg);}
+     thing at display size, and the only element with a graphic beside it. It
+     takes the room the key and the merged sections gave back — the dial on
+     the same `vh` footing as the step, so a window with the height to spare
+     spends it on the one thing the panel opens with rather than on air. */
+  .scoreRow{display:flex; gap:clamp(15px, 1.7vh, 19px); align-items:center;}
+  .dial{position:relative; width:var(--dial); height:var(--dial); flex:0 0 var(--dial);}
+  .dial svg{width:100%; height:100%; transform:rotate(-90deg);}
   .dial circle{fill:none; stroke-width:4.5;}
   .dialTrack{stroke:rgba(20,17,12,0.10);}
   .dialFill{stroke:#C8761C; stroke-linecap:round; transition:stroke-dashoffset .45s cubic-bezier(.2,.85,.25,1);}
   .dial span{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-display); font-weight:600; font-size:23px; letter-spacing:-0.02em;
+    font-family:var(--font-display); font-weight:600; letter-spacing:-0.02em;
+    font-size:clamp(23px, 3.4vh, 35px);
     /* Cormorant ships old-style figures by default, which renders 10.0 as
        something closer to IO.O. The score has to read as a number. */
     font-variant-numeric:lining-nums tabular-nums;}
   .scoreText{flex:1 1 auto; min-width:0;}
   .scoreText h2{margin:0; font-family:var(--font-display); font-weight:600;
-    font-size:clamp(22px,2.2vw,27px); line-height:1.1; letter-spacing:-0.014em;}
-  .scoreText p{margin:7px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2);}
+    font-size:clamp(23px,2.4vw,31px); line-height:1.1; letter-spacing:-0.014em;}
+  /* An aside on the score, in the panel's working face. Prompt Character is
+     the serif italic further down and says something else — when the prompt
+     was typed, where it fell in the session — so the two are not competing
+     for the same job. */
+  .scoreText p{margin:6px 0 0; font-size:12.5px; line-height:1.45; color:var(--ink-2);}
 
   /* ---- what the flower under the pointer stands for ----
      This is the key, and it is specific: the phase this flower is drawn for,
@@ -349,6 +357,7 @@
           </svg><span id="sScore">—</span></div>
           <div class="scoreText">
             <h2 id="sVerdict"></h2>
+            <p id="sQuip"></p>
           </div>
         </div>
       </section>
@@ -1554,11 +1563,36 @@ const VERDICTS = [
   [0,   'Needs more context']
 ];
 
+// One line under the verdict, in the same five bands. It is an aside on the
+// score and nothing else — it never says what came back, because no response
+// was ever captured and a line implying one would be fiction. Three per band,
+// picked by the flower's own index so neighbours differ and stepping through
+// the run does not repeat a line every time.
+const QUIPS = [
+  ['Nothing left to guess at.',
+   'Said once, and said properly.',
+   'Specific, clean, and one thing at a time.'],
+  ['Knows what it wants, if not every detail.',
+   'A tidy ask, with a little room left in it.',
+   'Direct, with the edges left soft.'],
+  ['Enough to go on, not enough to be sure.',
+   'Does what it needs to and no more.',
+   'Nothing wrong with it, nothing sharp either.'],
+  ['The thought arrived before the words did.',
+   'Half an ask, half a hope.',
+   'Gestures where it could have pointed.'],
+  ['More a gesture than an ask.',
+   'Brief to the point of mystery.',
+   'All vibe, no coordinates.']
+];
+
 function grade(v){ return v >= 0.8 ? 'High' : v >= 0.55 ? 'Good' : v >= 0.3 ? 'Moderate' : 'Needs work'; }
 
 function readFlower(b){
   const score = Math.round(b.q * 100) / 10;
-  const verdict = VERDICTS.find(v => score >= v[0])[1];
+  const band = VERDICTS.findIndex(v => score >= v[0]);
+  const verdict = VERDICTS[band][1];
+  const quip = QUIPS[band][b.id % QUIPS[band].length];
 
   // the three dimensions that are actually measured, each 0..1
   const dims = [
@@ -1640,7 +1674,7 @@ function readFlower(b){
   else if (b.bundle === 0)                      rang = ['One Thing at a Time', 'A single ask, not a list.'];
   else                                          rang = ['In the Thick of It', 'Flower ' + (b.ord+1) + ' of ' + b.slen + ' in this garland.'];
 
-  return { score, verdict, dims, tags: tags.slice(0, 4), missing, rang };
+  return { score, verdict, quip, dims, tags: tags.slice(0, 4), missing, rang };
 }
 
 const sEmpty = document.getElementById('sEmpty'), sBody = document.getElementById('sBody');
@@ -1662,6 +1696,7 @@ function showPanel(b){
   // score, with the ring filled to match
   $('sScore').textContent = r.score.toFixed(1);
   $('sVerdict').textContent = r.verdict;
+  $('sQuip').textContent = r.quip;
   const C = 2 * Math.PI * 26;
   const dial = $('sDial');
   dial.style.strokeDasharray = C.toFixed(1);
