@@ -61,9 +61,9 @@
      is steep and starts late so a short window stays compact: there is no
      spare height to spend there, and spending it anyway is what makes a panel
      scroll. */
-  #side{--step:clamp(8px, 4vh - 20px, 28px); --dial:clamp(62px, 9vh, 94px);
+  #side{--step:clamp(7px, 4.2vh - 22px, 28px); --dial:clamp(62px, 9vh, 94px);
     flex:0 0 clamp(292px, 27vw, 384px); border-left:1px solid var(--rule);
-    padding:calc(var(--pad) * 0.52) calc(var(--pad) * 0.82);
+    padding:var(--pad) calc(var(--pad) * 0.82) calc(var(--pad) * 0.45);
     overflow-y:auto; overscroll-behavior:contain;}
 
   /* Stacked, the panel would eat half the piece just to sit there empty, so it

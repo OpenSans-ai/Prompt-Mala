@@ -276,9 +276,15 @@ One step sets every gap, the same above a rule as below it. The panel used to sp
 spare height between the sections instead, which made the rhythm a property of the window —
 and put all of that air on one side of each rule, so a rule sat hard against the label
 below it and a hand's breadth from the words above. The step carries the window's height
-now (`--step`, `clamp(8px, 4vh - 20px, 28px)`), so the reading stays even and still fits a
-short window without scrolling; what is left over goes under the reading, where it reads as
-the end of it.
+now (`--step`, `clamp(7px, 4.2vh - 22px, 28px)`), so the reading stays even and still fits
+a short window without scrolling; what is left over goes under the reading, where it reads
+as the end of it.
+
+The panel's own top margin is the piece's: both columns start at `var(--pad)`, so the first
+label in the reading sits level with the top of the lockup. It used to be a little over
+half that, which left the score pinned to the ceiling while the piece beside it had a
+margin. Its sides and its foot stay narrower — those are measure and slack, not
+alignment.
 
 The step is set well clear of the gaps inside a section — 7px from a label to its words
 against 33 between one section and the next on a 900px window — because that ratio is the
