@@ -261,6 +261,32 @@ when the prompt was typed and where it fell in the session — and is told apart
 in the display face rather than by a voice of its own, now that there is no italic to give
 it one.
 
+Its name is the one line in the panel that is not English, and the only Devanagari in the
+piece besides माला in the standfirst. The twenty-three characters are Hindi — चाय पीके आया,
+कीबोर्ड खराब है, सीधी बात नो बकवास — and the sentence under each stays English, because that
+sentence is reporting the flower's own numbers and has to read as plainly as the rest of the
+reading.
+
+They are set in Devanagari rather than romanised because Rozha One is a Devanagari-and-Latin
+display face drawn for both, which is the whole reason the piece is set in it; a joke
+transliterated into Latin is a joke being explained. The register is spoken rather than
+written, which means English words carried in Devanagari wherever that is how the sentence
+actually comes out — फुल ब्रीफ, नो बकवास, दिमाग हैंग, स्क्रीनशॉट. Correct written Hindi was
+the first attempt and read as translated captions rather than as anything anyone says. Each
+line is a phrase doing the branch's own work rather than a rendering of the English name it
+replaced — the comparison branch is शर्मा जी के बेटे जैसा चाहिए, which is what a comparison
+actually sounds like out loud.
+
+The voice is the person who typed the prompt, in the first person wherever the branch has an
+action to own — दे दिया, भेजा, लिख दी, बोल रहा हूँ, सूझा — which is the difference between a
+caption on a flower and the flower speaking. Several more are first person with the pronoun
+dropped, as it is said aloud: साँस भी नहीं ली, चाय पीके आया. The ones that stay impersonal
+are the stock phrases, which a first person would break — शुभ आरंभ, फ़रमाइशों की लिस्ट,
+अभी तो पार्टी शुरू हुई है.
+The character line is 19px against the 17px it was while the names were Latin, and leaded
+looser: Devanagari hangs matras above and below the headline, so the same size in the same
+face reads smaller than the Latin did.
+
 Intent and style are one section. Split, they were two labels and a rule around a single
 thought — what the prompt was for, and how it was put — and the reader had to carry the
 first across the gap to make sense of the second. What it was for now sits in the key

@@ -32,7 +32,9 @@
        otherwise offline-capable and this is its one network dependency. Tiro
        carries one word, माला in the standfirst, without which the Devanagari
        falls back to a system face and sits visibly apart from the Latin
-       around it.
+       around it. The panel's Devanagari — Prompt Character — is Rozha One's,
+       not Tiro's: it is a display line and belongs with the other display
+       lines, so Tiro stays the text face for the one word in the standfirst.
        Rozha One is a Devanagari-and-Latin display face, which is the reason
        for it: the piece's display voice is a face drawn alongside the script
        it is named in. It ships one weight and no italic, so every line set in
@@ -297,12 +299,18 @@
   .fix{margin:0; font-size:12.5px; line-height:1.5; color:var(--ink-2);
     padding-left:11px; border-left:2px solid rgba(200,118,28,0.5);}
 
-  /* The one place the panel is allowed to be playful. It was the serif italic
-     when there was an italic to have; on a face with one upright cut it is the
-     only line in the panel at display size besides the score, which is enough
-     to set it apart from the working text under it. */
+  /* The one place the panel is allowed to be playful, and the only line in it
+     that is not English — the name is Hinglish, the sentence under it is not.
+     It was the serif italic when there was an italic to have; on a face with
+     one upright cut it is the only line in the panel at display size besides
+     the score, which is enough to set it apart from the working text under
+     it. */
+  /* 19px against the 17px this was while the names were Latin, and a looser
+     line: Devanagari hangs its matras above and below the headline and needs
+     the optical size and the leading to keep them off each other, so the same
+     px in the same face reads a size smaller than the Latin did. */
   .rang h3{margin:0; font-family:var(--font-display); font-weight:400;
-    font-size:17px; line-height:1.22;}
+    font-size:19px; line-height:1.32;}
   .rang p{margin:5px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-2);}
 
   /* The column is taller than the reading on most windows. That slack used to
@@ -411,7 +419,7 @@
 
       <section class="fs rang">
         <span class="lbl">Prompt Character</span>
-        <h3 id="sRangTitle"></h3>
+        <h3 id="sRangTitle" lang="hi"></h3>
         <p id="sRangBody"></p>
       </section>
 
@@ -1667,37 +1675,63 @@ function readFlower(b){
   // most particular first, so a prompt that is several of these at once gets
   // named by its least ordinary one, and the last branch always matches.
   // Nothing is invented here: every test is on a field the dataset carries.
+  // The name is Hindi, set in Devanagari, and the gloss under it is English:
+  // the name is the one playful line in the panel and plays better in the
+  // register the piece is titled in, while the sentence under it has to say
+  // plainly what the flower's own numbers are, so it stays in the language the
+  // rest of the reading is written in. Devanagari rather than romanised
+  // because Rozha One is a Devanagari-and-Latin display face drawn for both —
+  // the same reason the piece is set in it at all — so the script costs
+  // nothing here and a joke written in Devanagari reads as written rather than
+  // transliterated. The register is spoken, not written: these are phrases
+  // someone would text, which means English words carried in Devanagari where
+  // that is how the sentence actually comes out — फुल ब्रीफ, नो बकवास,
+  // दिमाग हैंग, स्क्रीनशॉट — and not the Hindi a textbook would use for them.
+  // Correct written Hindi was the first attempt and read as translated
+  // captions. Each line is a phrase doing the branch's own work rather than a
+  // rendering of the English name it replaced: the comparison branch is
+  // शर्मा जी के बेटे जैसा because that is what comparison sounds like out
+  // loud, not a version of 'The Comparison Maker'.
+  // The voice is the person who typed the prompt, in the first person
+  // wherever the branch has an action to own — दे दिया, भेजा, लिख दी,
+  // बोल रहा हूँ, सूझा. That is the difference between a caption on a flower
+  // and the flower speaking, and it is what the panel's one playful line is
+  // for. The ones that stay impersonal stay that way because they are stock
+  // phrases and bending them to a first person would break them: शुभ आरंभ,
+  // फ़रमाइशों की लिस्ट, अभी तो पार्टी शुरू हुई है. A few more are already
+  // first person with the pronoun dropped, which is how it is said out loud —
+  // साँस भी नहीं ली, चाय पीके आया.
   // There is deliberately no branch for a very short prompt with many asks:
   // the shortest many-ask prompt in this data is 18 words, so it would never
   // fire. Nor a plain many-asks catch-all — the ten that are not already
   // Laundry Lists all match something more particular above.
   let rang = null;
-  if (b.ord === 0 && b.wc >= 40)                rang = ['Arriving With a Plan', 'Opens the session with ' + b.wc + ' words.'];
-  else if (b.ord === 0)                         rang = ['The Opener', 'The prompt this session starts from.'];
-  else if (b.ord === b.slen - 1 && b.slen > 3)  rang = ['The Last Word', 'Where this session stopped, ' + b.slen + ' prompts in.'];
-  else if (b.gap >= 0 && b.gap < 30)            rang = ['Hot on the Heels', 'Sent ' + b.gap + 's after the one before it.'];
-  else if (b.gap > 8 * 3600)                    rang = ['Slept On It', 'Picked the thread back up ' + fmtGap(b.gap) + ' later.'];
-  else if (b.gap > 3600)                        rang = ['After a Long Pause', 'Picked the thread back up ' + fmtGap(b.gap) + ' later.'];
-  else if (b.clarity === 2)                     rang = ['Typed in a Hurry', 'Heavy typos — the thought outran the keyboard.'];
-  else if (b.wc >= 60)                          rang = ['The Long Read', b.wc + ' words in a single prompt.'];
-  else if (b.ground === 2)                      rang = ['The Comparison Maker', 'Pins the ask down by holding it against something else.'];
-  else if (b.wc >= 40 && b.ground === 1)        rang = ['The Detail Lover', b.wc + ' words and a picture pointed at as well.'];
-  else if (b.ground === 1)                      rang = ['Show, Don\'t Tell', 'Points at a picture instead of describing it.'];
-  else if (b.bundle === 2 && b.wc >= 30)        rang = ['The Laundry List', 'Several asks at once, across ' + b.wc + ' words.'];
-  else if (b.spec === 3)                        rang = ['A Wave of the Hand', 'Vague about what exactly it wants.'];
+  if (b.ord === 0 && b.wc >= 40)                rang = ['आते ही फुल ब्रीफ दे दिया', 'Opens the session with ' + b.wc + ' words.'];
+  else if (b.ord === 0)                         rang = ['शुभ आरंभ', 'The prompt this session starts from.'];
+  else if (b.ord === b.slen - 1 && b.slen > 3)  rang = ['बस, आज इतना ही', 'Where this session stopped, ' + b.slen + ' prompts in.'];
+  else if (b.gap >= 0 && b.gap < 30)            rang = ['साँस भी नहीं ली', 'Sent ' + b.gap + 's after the one before it.'];
+  else if (b.gap > 8 * 3600)                    rang = ['सोके उठा, फिर भेजा', 'Picked the thread back up ' + fmtGap(b.gap) + ' later.'];
+  else if (b.gap > 3600)                        rang = ['चाय पीके आया', 'Picked the thread back up ' + fmtGap(b.gap) + ' later.'];
+  else if (b.clarity === 2)                     rang = ['मेरा कीबोर्ड खराब है', 'Heavy typos — the thought outran the keyboard.'];
+  else if (b.wc >= 60)                          rang = ['पूरी रामायण लिख दी', b.wc + ' words in a single prompt.'];
+  else if (b.ground === 2)                      rang = ['शर्मा जी के बेटे जैसा चाहिए', 'Pins the ask down by holding it against something else.'];
+  else if (b.wc >= 40 && b.ground === 1)        rang = ['स्क्रीनशॉट भी, लेक्चर भी', b.wc + ' words and a picture pointed at as well.'];
+  else if (b.ground === 1)                      rang = ['ये वाला, समझ गए ना', 'Points at a picture instead of describing it.'];
+  else if (b.bundle === 2 && b.wc >= 30)        rang = ['फ़रमाइशों की लिस्ट', 'Several asks at once, across ' + b.wc + ' words.'];
+  else if (b.spec === 3)                        rang = ['कुछ अच्छा सा कर दो', 'Vague about what exactly it wants.'];
   else if (b.spec === 0 && b.bundle === 0 && b.clarity === 0)
-                                                rang = ['The Precision Instrument', 'One ask, specific, and cleanly typed.'];
-  else if (b.fatIdx === 2 && b.clarity > 0)     rang = ['Running on Fumes', 'Late in the session, and the typing shows it.'];
+                                                rang = ['पॉइंट पे आ गया', 'One ask, specific, and cleanly typed.'];
+  else if (b.fatIdx === 2 && b.clarity > 0)     rang = ['दिमाग हैंग, हाथ चालू', 'Late in the session, and the typing shows it.'];
   else if (b.bundle === 0 && b.spec <= 1 && b.wc <= 12)
-                                                rang = ['Straight to the Point', 'One ask, named plainly, in ' + b.wc + ' words.'];
-  else if (b.spec === 2 && b.wc >= 25)          rang = ['Thinking Out Loud', 'Part precise, part still working itself out, across ' + b.wc + ' words.'];
-  else if (b.hour === 3)                        rang = ['Night Shift', 'Typed late, when the day had already gone long.'];
-  else if (b.hour === 0)                        rang = ['First Thing', 'Typed in the morning, before the day filled up.'];
+                                                rang = ['सीधी बात, नो बकवास', 'One ask, named plainly, in ' + b.wc + ' words.'];
+  else if (b.spec === 2 && b.wc >= 25)          rang = ['आधा सोचा, आधा टाइप किया', 'Part precise, part still working itself out, across ' + b.wc + ' words.'];
+  else if (b.hour === 3)                        rang = ['रात दो बजे सूझा', 'Typed late, when the day had already gone long.'];
+  else if (b.hour === 0)                        rang = ['सुबह सुबह, खाली पेट', 'Typed in the morning, before the day filled up.'];
   else if (b.ord >= 2 && b.gap >= 0 && b.gap < 120)
-                                                rang = ['Third Time\'s the Charm', 'Flower ' + (b.ord+1) + ' of this garland, hard on the heels of the last.'];
-  else if (b.fatIdx === 0 && b.slen >= 20)      rang = ['Early Days', 'Near the top of a ' + b.slen + '-prompt session.'];
-  else if (b.bundle === 0)                      rang = ['One Thing at a Time', 'A single ask, not a list.'];
-  else                                          rang = ['In the Thick of It', 'Flower ' + (b.ord+1) + ' of ' + b.slen + ' in this garland.'];
+                                                rang = ['तीसरी बार बोल रहा हूँ', 'Flower ' + (b.ord+1) + ' of this garland, hard on the heels of the last.'];
+  else if (b.fatIdx === 0 && b.slen >= 20)      rang = ['अभी तो पार्टी शुरू हुई है', 'Near the top of a ' + b.slen + '-prompt session.'];
+  else if (b.bundle === 0)                      rang = ['एक टाइम पे एक काम', 'A single ask, not a list.'];
+  else                                          rang = ['चल रहा है, चलने दो', 'Flower ' + (b.ord+1) + ' of ' + b.slen + ' in this garland.'];
 
   return { score, verdict, quip, dims, tags: tags.slice(0, 4), missing, rang };
 }
